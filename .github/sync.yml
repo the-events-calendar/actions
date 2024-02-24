@@ -1,19 +1,27 @@
 group:
-  files:
-    - source: templates/pull_request_template.md
-      dest: .github/pull_request_template.md
-    - source: templates/workflows/lint.yml
-      dest: .github/workflows/lint.yml
-  repos: |
-    the-events-calendar/tribe-common@master
-    the-events-calendar/the-events-calendar@master
-    the-events-calendar/events-pro@master
-    the-events-calendar/events-automator@main
-    the-events-calendar/events-virtual@master
-    the-events-calendar/events-eventbrite@master
-    the-events-calendar/events-community@master
-    the-events-calendar/events-community-tickets@master
-    the-events-calendar/events-filterbar@master
-    the-events-calendar/event-tickets@master
-    the-events-calendar/event-tickets-plus@master
-    the-events-calendar/event-tickets-wallet-plus@main
+  # Plugin Repositories
+  - files:
+      - source: templates/pull_request_template.md
+        dest: .github/pull_request_template.md
+      - source: templates/workflows/lint.yml
+        dest: .github/workflows/lint.yml
+    repos: |
+      the-events-calendar/tribe-common@master
+      the-events-calendar/the-events-calendar@master
+      the-events-calendar/events-pro@master
+      the-events-calendar/events-automator@main
+      the-events-calendar/events-virtual@master
+      the-events-calendar/events-eventbrite@master
+      the-events-calendar/events-community@master
+      the-events-calendar/events-community-tickets@master
+      the-events-calendar/events-filterbar@master
+      the-events-calendar/event-tickets@master
+      the-events-calendar/event-tickets-plus@master
+      the-events-calendar/event-tickets-wallet-plus@main
+
+  # Promoter
+  - files:
+      - source: templates/pull_request_template.md
+        dest: .github/pull_request_template.md
+    repos: |
+      the-events-calendar/promoter@server/production

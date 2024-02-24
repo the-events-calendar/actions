@@ -1,4 +1,4 @@
-name: Sync files
+name: Sync across repositories
 on:
   push:
     branches:
