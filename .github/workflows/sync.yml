@@ -3,6 +3,10 @@ on:
   push:
     branches:
       - main
+    paths:
+      - '.github/sync.yml'
+      - '.github/workflows/sync.yml'
+      - 'templates/**'
   workflow_dispatch:
 jobs:
   sync:
