@@ -5,6 +5,8 @@ group:
         dest: .github/pull_request_template.md
       - source: templates/workflows/lint.yml
         dest: .github/workflows/lint.yml
+      - source: templates/workflows/link-project.yml
+        dest: .github/workflows/link-project.yml
     repos: |
       the-events-calendar/tribe-common@master
       the-events-calendar/the-events-calendar@master
@@ -23,5 +25,7 @@ group:
   - files:
       - source: templates/pull_request_template.md
         dest: .github/pull_request_template.md
+      - source: templates/workflows/link-project.yml
+        dest: .github/workflows/link-project.yml
     repos: |
       the-events-calendar/promoter@server/production
