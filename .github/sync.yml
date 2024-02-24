@@ -1,7 +1,7 @@
 group:
   files:
-    - source: templates/pull_request_template.yml
-      dest: .github/pull_request_template.yml
+    - source: templates/pull_request_template.md
+      dest: .github/pull_request_template.md
     - source: templates/workflows/lint.yml
       dest: .github/workflows/lint.yml
   repos: |
