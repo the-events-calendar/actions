@@ -1,4 +1,4 @@
-# The Events Calendar: Automations
+# The Events Calendar: GitHub Actions
 
 This repository contains the code for the Automations using GitHub Actions used by the The Events Calendar team.
 
