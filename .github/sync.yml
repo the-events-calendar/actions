@@ -12,8 +12,8 @@ group:
         dest: .eslintignore
       - source: templates/.stylelintrc
         dest: .stylelintrc
-      - source: templates/babel.config.js
-        dest: babel.config.js
+      - source: templates/babel.config.json
+        dest: babel.config.json
       - source: templates/gulpfile.js
         dest: gulpfile.js
       - source: templates/.gitattributes
