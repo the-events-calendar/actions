@@ -23,6 +23,18 @@ group:
       - source: templates/pull_request_template.md
         dest: .github/pull_request_template.md
 
+      # Changelog Folder
+      - source: templates/changelog/.gitkeep
+        dest: changelog/.gitkeep
+
+      # Binary Folder
+      - source: templates/bin/check-changelog.sh
+        dest: bin/check-changelog.sh
+      - source: templates/bin/class-tec-changelog-formatter.php
+        dest: bin/class-tec-changelog-formatter.php
+      - source: templates/bin/process-changelog.sh
+        dest: bin/process-changelog.sh
+
       # GitHub Workflows
       - source: templates/workflows/lint.yml
         dest: .github/workflows/lint.yml
@@ -30,6 +42,8 @@ group:
         dest: .github/workflows/link-project.yml
       - source: templates/workflows/phpcs.yml
         dest: .github/workflows/phpcs.yml
+      - source: templates/workflows/changelogger.yml
+        dest: .github/workflows/changelogger.yml
     repos: |
       the-events-calendar/tribe-common@master
       the-events-calendar/the-events-calendar@master
