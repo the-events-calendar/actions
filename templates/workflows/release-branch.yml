@@ -12,10 +12,10 @@ on:
         required: true
         type: choice
         options:
-          - major
-          - feature
-          - maintenance
-          - hotfix
+          - major (X.x.x)
+          - feature (x.X.x)
+          - maintenance (x.x.X)
+          - hotfix (x.x.x.X)
 
 jobs:
   create-pull-request:
