@@ -34,6 +34,8 @@ group:
         dest: bin/class-tec-changelog-formatter.php
       - source: templates/bin/process-changelog.sh
         dest: bin/process-changelog.sh
+      - source: templates/bin/ModifiedSemverVersioning.php
+        dest: bin/ModifiedSemverVersioning.php
 
       # GitHub Workflows
       - source: templates/workflows/lint.yml
