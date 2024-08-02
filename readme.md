@@ -8,11 +8,11 @@ Before the creation of this repository most of the automation were done with ind
 
 For more global integrations we used Jenkins, but we want to move away from it and use GitHub Actions for everything.
 
-## Sychronization of Files
+## Synchronization of Files
 
-We are using the [BetaHuhn/repo-file-sync-action](https://github.com/marketplace/actions/repo-file-sync-action) action to enable us to sychronize files across different repositories.
+We are using the [BetaHuhn/repo-file-sync-action](https://github.com/marketplace/actions/repo-file-sync-action) action to enable us to synchronize files across different repositories.
 
-So any files that need to be identical across different repositories can be sychronized using this action, and the original stored in this repository under the `templates` folder.
+So any files that need to be identical across different repositories can be synchronized using this action, and the original stored in this repository under the `templates` folder.
 
 > [!NOTE]
 > If you are using this action, please make sure to include `@tec-bot` user as a collaborator with write permissions in the repository you want to sync the files to.

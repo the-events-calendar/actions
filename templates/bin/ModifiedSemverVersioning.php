@@ -4,14 +4,14 @@
  *
  * Allows for x.y.z.T where T is a hotfix version
  *
- * @package automattic/jetpack-changelogger
+ * @package TEC\Jetpack\Changelogger
  */
 
-namespace Automattic\Jetpack\Changelogger\Plugins;
+namespace TEC\Jetpack\Changelogger\Plugins;
 
-use Automattic\Jetpack\Changelog\ChangeEntry;
-use Automattic\Jetpack\Changelogger\PluginTrait;
-use Automattic\Jetpack\Changelogger\VersioningPlugin;
+use TEC\Jetpack\Changelog\ChangeEntry;
+use TEC\Jetpack\Changelogger\PluginTrait;
+use TEC\Jetpack\Changelogger\VersioningPlugin;
 use InvalidArgumentException;
 
 /**
