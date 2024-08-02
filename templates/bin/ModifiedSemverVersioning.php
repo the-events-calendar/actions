@@ -4,10 +4,10 @@
  *
  * Allows for x.y.z.T where T is a hotfix version
  *
- * @package TEC\Changelogger
+ * @package TEC\Actions\Changelogger
  */
 
-namespace TEC\Changelogger\Plugins;
+namespace TEC\Actions\Changelogger\Plugins;
 
 use Automattic\Jetpack\Changelog\ChangeEntry;
 use Automattic\Jetpack\Changelogger\PluginTrait;
