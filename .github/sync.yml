@@ -40,6 +40,8 @@ group:
       # GitHub Workflows
       - source: templates/workflows/lint.yml
         dest: .github/workflows/lint.yml
+      - source: templates/workflows/release-branch.yml
+        dest: .github/workflows/release-branch.yml
       - source: templates/workflows/link-project.yml
         dest: .github/workflows/link-project.yml
       - source: templates/workflows/phpcs.yml
