@@ -45,5 +45,4 @@ else
 	fi
 
 	perl -i -pe "s/(== Changelog ==)/\1\n\n= [$RELEASE_VERSION] $RELEASE_DATE =\n\n$CHANGELOG/" readme.txt
-
 fi
