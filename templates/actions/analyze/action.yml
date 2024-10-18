@@ -13,6 +13,8 @@ runs:
         # Split lines from the diff
         IFS=$'\n' read -rd '' -a lines <<< "$diff"
 
+        echo "Diff: $diff"
+
         # Function to get files from the diff lines
         get_files() {
           local -n _lines=$1
@@ -86,6 +88,8 @@ runs:
         # Display results
         for key in "${!results[@]}"; do
           items="${results[$key]}"
+
+          echo "Items: $items"
           if [ -z "$items" ]; then
             continue
           fi
@@ -94,7 +98,8 @@ runs:
             # Extract the file names, format them, and remove the leading 'a/'.
             formatted_files=$(echo "$items" | awk '{print $3}' | sed 's|^a/||' | sed 's|^|`|' | sed 's|$|`|' | paste -sd ' ' | sed 's|` |`, |g')
 
-            ./vendor/bin/changelogger add --filename=analyze --filename-auto-suffix --significance=minor --type=tweak --entry="Changed views: $formatted_files"
+            echo "formatted_files: $formatted_files"
+            ./vendor/bin/changelogger add --filename=analyze --filename-auto-suffix --significance=minor --type=tweak --entry="Changed views: $formatted_files" --no-interaction
           else
             if [[ "$key" =~ actions ]]; then
               # Process actions
@@ -107,9 +112,11 @@ runs:
             if [ -n "$formatted_items" ]; then
               key_short=$(echo "$key" | cut -c 1-7)
               if [[ "$key" =~ \+ ]]; then
-                ./vendor/bin/changelogger add --filename=analyze --filename-auto-suffix --significance=minor --type=tweak --entry="Added $key_short: $formatted_items"
+                echo "formatted_items: $formatted_items"
+                ./vendor/bin/changelogger add --filename=analyze --filename-auto-suffix --significance=minor --type=tweak --entry="Added $key_short: $formatted_items" --no-interaction
               else
-                ./vendor/bin/changelogger add --filename=analyze --filename-auto-suffix --significance=minor --type=tweak --entry="Removed $key_short: $formatted_items"
+                echo "formatted_items: $formatted_items"
+                ./vendor/bin/changelogger add --filename=analyze --filename-auto-suffix --significance=minor --type=tweak --entry="Removed $key_short: $formatted_items" --no-interaction
               fi
             fi
           fi
