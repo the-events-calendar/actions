@@ -37,9 +37,15 @@ group:
       - source: templates/bin/ModifiedSemverVersioning.php
         dest: bin/ModifiedSemverVersioning.php
 
+      # GitHub Actions
+      - source: templates/actions/process-changelog/action.yml
+        dest: .github/actions/process-changelog/action.yml
+
       # GitHub Workflows
       - source: templates/workflows/lint.yml
         dest: .github/workflows/lint.yml
+      - source: templates/workflows/process-changelog.yml
+        dest: .github/workflows/process-changelog.yml
       - source: templates/workflows/release-branch.yml
         dest: .github/workflows/release-branch.yml
       - source: templates/workflows/link-project.yml
