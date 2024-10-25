@@ -108,9 +108,6 @@ jobs:
           git checkout -b "$changeBranch"
           git push origin "$changeBranch"
 
-      - name: "Analyze"
-        uses: ./.github/actions/analyze
-
       - name: "Process changelog"
         id: process_changelog
         uses: ./.github/actions/process-changelog
