@@ -35,7 +35,7 @@ jobs:
   phpcs:
     needs:
       - conditional
-    if: needs.conditional.outputs.has_no_php_changes == 1
+    if: needs.conditional.outputs.has_no_php_changes == '0'
     uses: stellarwp/github-actions/.github/workflows/phpcs.yml@main
     with:
       ref: ${{ github.event.inputs.ref }}
