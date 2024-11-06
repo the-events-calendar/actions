@@ -1,0 +1,48 @@
+name: Push POT file to translations.stellarwp.com
+description: Pushes the plugin POT file to translations.stellarwp.com for translations
+
+inputs:
+	plugin_slug:
+		description: 'Plugin Slug'
+		required: true
+
+runs:
+	using: "composite"
+	steps:
+    - name: Generate Build ID
+      id: generate
+      run: |
+        build_uuid=$(echo "${{ github.sha }} $(date +"%Y-%m-%d %T")" | md5sum | awk '{print $1}')
+        echo "build_uuid=$build_uuid" >> $GITHUB_ENV
+        echo "build_uuid=$build_uuid" >> $GITHUB_OUTPUT
+        echo "## Build UUID: \`$build_uuid\`" >> $GITHUB_STEP_SUMMARY
+
+		- name: Deploy POT file to translations.stellarwp.com
+			uses: burnett01/rsync-deployments@7.0.1
+			with:
+				switches: -avz --omit-dir-times --no-perms
+				path: languages/${{ inputs.plugin_slug }}.pot
+				remote_path: ${{ env.TRANSLATIONS_DEPLOY_POT_LOCATION }}tec/
+				remote_host: ${{ env.TRANSLATIONS_DEPLOY_HOST }}
+				remote_user: ${{ env.TRANSLATIONS_DEPLOY_USER }}
+				remote_key: ${{ env.TRANSLATIONS_DEPLOY_SSH_KEY }}
+
+		- name: SSH to Translations StellarWP Website
+			uses: appleboy/ssh-action@v1.1.0
+			with:
+				host: ${{ env.TRANSLATIONS_DEPLOY_HOST }}
+				username: ${{ env.TRANSLATIONS_DEPLOY_USER }}
+				key: ${{ env.TRANSLATIONS_DEPLOY_SSH_KEY }}
+				script: |
+					pwd
+					cd translations.stellarwp.com/html/
+					wp glotpress import-originals tec/${{ inputs.plugin_slug }} ${{ env.TRANSLATIONS_DEPLOY_POT_LOCATION }}tec/${{ inputs.plugin_slug }}.pot > tec/${{ inputs.plugin_slug }}-${{ steps.generate.outputs.build_uuid }}
+
+    - name: Transfer Import Orginals output File
+      uses: appleboy/scp-action@v0.1.7
+      with:
+				host: ${{ env.TRANSLATIONS_DEPLOY_HOST }}
+				username: ${{ env.TRANSLATIONS_DEPLOY_USER }}
+				key: ${{ env.TRANSLATIONS_DEPLOY_SSH_KEY }}
+        source: translations.stellarwp.com/html/tec/${{ inputs.plugin_slug }}-${{ steps.generate.outputs.build_uuid }}
+        target: /tmp/
