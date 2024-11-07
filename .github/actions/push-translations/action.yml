@@ -5,6 +5,9 @@ inputs:
   plugin_slug:
     description: 'Plugin Slug'
     required: true
+  pot_path:
+    description: 'POT Path'
+    required: true
 
 outputs:
   glotpress-result: 
@@ -27,7 +30,7 @@ runs:
       uses: burnett01/rsync-deployments@7.0.1
       with:
         switches: -avz --omit-dir-times --no-perms
-        path: languages/${{ inputs.plugin_slug }}.pot
+        path: ${{ inputs.pot_path }}
         remote_path: ${{ env.TRANSLATIONS_DEPLOY_POT_LOCATION }}tec/
         remote_host: ${{ env.TRANSLATIONS_DEPLOY_HOST }}
         remote_user: ${{ env.TRANSLATIONS_DEPLOY_USER }}
