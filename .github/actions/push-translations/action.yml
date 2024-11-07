@@ -8,6 +8,8 @@ inputs:
 
 runs:
   using: "composite"
+  outputs:
+    glotpress-result: ${{ steps.fetch-results.outputs.glotpress-results }}
   steps:
     - name: Generate Build ID
       id: generate
@@ -41,12 +43,14 @@ runs:
           wp glotpress import-originals ${{ inputs.plugin_slug }} ${{ env.TRANSLATIONS_DEPLOY_POT_LOCATION }}tec/${{ inputs.plugin_slug }}.pot > bot-output/${{ inputs.plugin_slug }}-${{ steps.generate.outputs.build_uuid }}
 
     - name: Output Results from Importing Pot
+      id: fetch-results
       shell: bash
       run: |
         results_from_glotpress=$(curl -s https://translations.stellarwp.com/bot-output/${{ inputs.plugin_slug }}-${{ steps.generate.outputs.build_uuid }})
+
+        echo "glotpress-results=$results_from_glotpress" >> $GITHUB_OUTPUT
         echo "## Results from GlotPress" >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`$results_from_glotpress\`\`\`" >> $GITHUB_STEP_SUMMARY
-
 
     - name: Clean Bot Output
       uses: appleboy/ssh-action@v1.1.0
