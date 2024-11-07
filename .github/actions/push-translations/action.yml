@@ -36,7 +36,7 @@ runs:
         script: |
           pwd
           cd translations.stellarwp.com/html/
-          wp glotpress import-originals tec/${{ inputs.plugin_slug }} ${{ env.TRANSLATIONS_DEPLOY_POT_LOCATION }}tec/${{ inputs.plugin_slug }}.pot > tec/${{ inputs.plugin_slug }}-${{ steps.generate.outputs.build_uuid }}
+          wp glotpress import-originals ${{ inputs.plugin_slug }} ${{ env.TRANSLATIONS_DEPLOY_POT_LOCATION }}tec/${{ inputs.plugin_slug }}.pot > bot-output/${{ inputs.plugin_slug }}-${{ steps.generate.outputs.build_uuid }}
 
     - name: Transfer Import Orginals output File
       uses: appleboy/scp-action@v0.1.7
@@ -44,5 +44,10 @@ runs:
         host: ${{ env.TRANSLATIONS_DEPLOY_HOST }}
         username: ${{ env.TRANSLATIONS_DEPLOY_USER }}
         key: ${{ env.TRANSLATIONS_DEPLOY_SSH_KEY }}
-        source: translations.stellarwp.com/html/tec/${{ inputs.plugin_slug }}-${{ steps.generate.outputs.build_uuid }}
+        source: translations.stellarwp.com/html/bot-output/${{ inputs.plugin_slug }}-${{ steps.generate.outputs.build_uuid }}
         target: /tmp/
+
+    - name: Output Results from Importing Pot
+      run: |
+        results_from_glotpress=$(cat /tmp/${{ inputs.plugin_slug }}-${{ steps.generate.outputs.build_uuid }})
+        echo "## Results from GlotPress \n \`\`\`$results_from_glotpress\`\`\`" >> $GITHUB_STEP_SUMMARY
