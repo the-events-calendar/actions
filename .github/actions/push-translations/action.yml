@@ -4,12 +4,13 @@ description: Pushes the plugin POT file to translations.stellarwp.com for transl
 inputs:
   plugin_slug:
     description: 'Plugin Slug'
-    required: true
+    required: true\
 
+outputs:
+    glotpress-result: ${{ steps.fetch-results.outputs.glotpress-results }}
+    
 runs:
   using: "composite"
-  outputs:
-    glotpress-result: ${{ steps.fetch-results.outputs.glotpress-results }}
   steps:
     - name: Generate Build ID
       id: generate
