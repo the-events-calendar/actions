@@ -11,6 +11,7 @@ runs:
   steps:
     - name: Generate Build ID
       id: generate
+      shell: bash
       run: |
         build_uuid=$(echo "${{ github.sha }} $(date +"%Y-%m-%d %T")" | md5sum | awk '{print $1}')
         echo "build_uuid=$build_uuid" >> $GITHUB_ENV
@@ -48,6 +49,7 @@ runs:
         target: /tmp/
 
     - name: Output Results from Importing Pot
+      shell: bash
       run: |
         results_from_glotpress=$(cat /tmp/${{ inputs.plugin_slug }}-${{ steps.generate.outputs.build_uuid }})
         echo "## Results from GlotPress \n \`\`\`$results_from_glotpress\`\`\`" >> $GITHUB_STEP_SUMMARY
