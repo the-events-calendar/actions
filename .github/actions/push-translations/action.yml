@@ -6,13 +6,10 @@ inputs:
     description: 'Plugin Slug'
     required: true
 
-on:
-  workflow_call:
-    # Map the workflow outputs to job outputs
-    outputs:
-      glotpress-result: 
-        description: "Result from GlotPress import"
-        value: ${{ steps.fetch-results.outputs.glotpress-results }}
+outputs:
+  glotpress-result: 
+    description: "Result from GlotPress import"
+    value: ${{ steps.fetch-results.outputs.glotpress-results }}
 
 runs:
   using: "composite"
