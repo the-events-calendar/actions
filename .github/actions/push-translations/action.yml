@@ -44,4 +44,5 @@ runs:
       shell: bash
       run: |
         results_from_glotpress=$(curl -s https://translations.stellarwp.com/bot-output/${{ inputs.plugin_slug }}-${{ steps.generate.outputs.build_uuid }})
-        echo "## Results from GlotPress \n \`\`\`$results_from_glotpress\`\`\`" >> $GITHUB_STEP_SUMMARY
+        echo "## Results from GlotPress" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`$results_from_glotpress\`\`\`" >> $GITHUB_STEP_SUMMARY
