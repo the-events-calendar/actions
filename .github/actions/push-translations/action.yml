@@ -37,6 +37,7 @@ runs:
         script: |
           pwd
           cd translations.stellarwp.com/html/
+          mkdir -p bot-output/
           wp glotpress import-originals ${{ inputs.plugin_slug }} ${{ env.TRANSLATIONS_DEPLOY_POT_LOCATION }}tec/${{ inputs.plugin_slug }}.pot > bot-output/${{ inputs.plugin_slug }}-${{ steps.generate.outputs.build_uuid }}
 
     - name: Transfer Import Orginals output File
