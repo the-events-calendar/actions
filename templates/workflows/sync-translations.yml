@@ -2,27 +2,7 @@ name: 🔁 Sync Translations
 
 on:
   workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
-    inputs:
-      ref:
-        description: 'Git Commit Ref (branch, tag, or hash)'
-        required: true
-        type: string
-        default: 'master'
-      plugin_slug:
-        description: 'Plugin Slug'
-        required: true
-        type: string
   workflow_call:
-    inputs:
-      ref:
-        description: 'Git Commit Ref (branch, tag, or hash)'
-        required: true
-        type: string
-        default: 'master'
-      plugin_slug:
-        description: 'Plugin Slug'
-        required: true
-        type: string
     secrets:
       TRANSLATIONS_DEPLOY_HOST:
         required: true
@@ -40,7 +20,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ github.sha }}
+          
+      - name: Fetch Plugin Slug from .puprc
+        id: puprc
+        run: |
+          plugin_slug=$(jq -r '.i18n[0].slug' .puprc)
+          echo "plugin_slug=$plugin_slug" >> $GITHUB_ENV
+          echo "plugin_slug=$plugin_slug" >> $GITHUB_OUTPUT
+          echo "## Plugin Slug: \`$plugin_slug\`" >> $GITHUB_STEP_SUMMARY
 
       - name: Install composer dependencies
         uses: php-actions/composer@v6
@@ -52,11 +40,11 @@ jobs:
       - uses: the-events-calendar/actions/.github/actions/generate-pot@main
         with:
           plugin_path: ${{ github.workspace }}
-          pot_path: ${{github.workspace}}/languages/${{ inputs.plugin_slug }}.pot
+          pot_path: ${{github.workspace}}/languages/${{ steps.puprc.outputs.plugin_slug }}.pot
 
       - uses: the-events-calendar/actions/.github/actions/push-translations@main
         with:
-          plugin_slug: ${{ inputs.plugin_slug }}
+          plugin_slug: ${{ steps.puprc.outputs.plugin_slug }}
         env:
           TRANSLATIONS_DEPLOY_HOST: ${{ secrets.TRANSLATIONS_DEPLOY_HOST }}
           TRANSLATIONS_DEPLOY_USER: ${{ secrets.TRANSLATIONS_DEPLOY_USER }}
