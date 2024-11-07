@@ -12,15 +12,6 @@ on:
         description: 'Plugin Slug'
         required: true
         type: string
-    secrets:
-      TRANSLATIONS_DEPLOY_HOST:
-        required: true
-      TRANSLATIONS_DEPLOY_USER:
-        required: true
-      TRANSLATIONS_DEPLOY_SSH_KEY:
-        required: true
-      TRANSLATIONS_DEPLOY_POT_LOCATION:
-        required: true
   workflow_call:
     inputs:
       ref:
@@ -47,7 +38,7 @@ jobs:
     name: 🔁 Sync Translations
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
 
