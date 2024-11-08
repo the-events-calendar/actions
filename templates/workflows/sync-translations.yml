@@ -25,6 +25,12 @@ jobs:
       - name: Set Variables
         id: vars
         run: |
+          branch_name="${{ github.head_ref || github.ref_name }}"
+          should_glotpress=0
+          if [[ "$branch_name" =~ ^release/.* || "$branch_name" == "master" || "$branch_name" == "main" ]]; then
+              should_glotpress=1
+          fi
+          echo "should_glotpress=$should_glotpress" >> $GITHUB_OUTPUT
           echo "sha_short=$(git rev-parse --short ${{ github.sha }})" >> $GITHUB_OUTPUT
           
       - name: Fetch Plugin Slug from .puprc
@@ -43,6 +49,7 @@ jobs:
 
       - uses: the-events-calendar/actions/.github/actions/push-translations@main
         id: push-translations
+        if: steps.vars.outputs.should_glotpress == '1'
         with:
           plugin_slug: ${{ steps.puprc.outputs.plugin_slug }}
           pot_path: lang/${{ steps.puprc.outputs.plugin_slug }}.pot
@@ -53,6 +60,7 @@ jobs:
           TRANSLATIONS_DEPLOY_POT_LOCATION: ${{ secrets.TRANSLATIONS_DEPLOY_POT_LOCATION }}
 
       - name: Install composer dependencies
+        if: steps.vars.outputs.should_glotpress == '1'
         uses: php-actions/composer@v6
         with:
           php_version: 7.4
@@ -60,6 +68,7 @@ jobs:
           args: --ignore-platform-reqs
           
       - name: Fetch Plugin Slug from .puprc
+        if: steps.vars.outputs.should_glotpress == '1'
         id: run-changelogger
         run: |
           ./vendor/bin/changelogger add -f "task-i18n-${{ steps.vars.outputs.sha_short }}" -s patch -t language -e "${{ steps.push-translations.outputs.glotpress-result }}" --filename-auto-suffix --no-interaction
@@ -88,5 +97,5 @@ jobs:
         if: ${{ steps.create-pull-request.outputs.pull-request-number }}
         run: |
           echo "## Pull Request"  >> $GITHUB_STEP_SUMMARY
-          echo "* Number - ${{ steps.cpr.outputs.pull-request-number }}" >> $GITHUB_STEP_SUMMARY
-          echo "* URL - [${{ steps.cpr.outputs.pull-request-url }}](${{ steps.cpr.outputs.pull-request-url }})" >> $GITHUB_STEP_SUMMARY
+          echo "* Number - ${{ steps.create-pull-request.outputs.pull-request-number }}" >> $GITHUB_STEP_SUMMARY
+          echo "* URL - [${{ steps.create-pull-request.outputs.pull-request-url }}](${{ steps.create-pull-request.outputs.pull-request-url }})" >> $GITHUB_STEP_SUMMARY
