@@ -67,5 +67,5 @@ runs:
         --type="${{ inputs.type }}" \
         --entry="${{ inputs.entry }}" \
         --comment="${{ inputs.comment }}" \
-        "${{ inputs.extra-arguments }}" \
+        ${{ inputs.extra-arguments }} \
         --no-interaction
