@@ -59,6 +59,7 @@ runs:
         
     - name: Create a Changelog with the input passed.
       id: run-changelogger
+      shell: bash
       run: |
         ./vendor/bin/changelogger add \
         --filename="${{ inputs.file }}"
