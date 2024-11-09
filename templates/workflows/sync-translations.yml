@@ -67,7 +67,7 @@ jobs:
           dev: yes
           args: --ignore-platform-reqs
           
-      - name: Fetch Plugin Slug from .puprc
+      - name: Create a Changelog entry for all the Language changes.
         if: steps.vars.outputs.should_glotpress == '1'
         id: run-changelogger
         run: |
