@@ -62,7 +62,7 @@ runs:
       shell: bash
       run: |
         ./vendor/bin/changelogger add \
-        --filename="${{ inputs.file }}"
+        --filename="${{ inputs.file }}" \
         --significance="${{ inputs.significance }}" \
         --type="${{ inputs.type }}" \
         --entry="${{ inputs.entry }}" \
