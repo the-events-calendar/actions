@@ -2,6 +2,8 @@ group:
   # Active Plugin Repositories
   - files:
       # Base Files
+      - source: templates/.browserslistrc
+        dest: .browserslistrc
       - source: templates/.nvmrc
         dest: .nvmrc
       - source: templates/.editorconfig
@@ -74,40 +76,3 @@ group:
         dest: .github/workflows/link-project.yml
     repos: |
       the-events-calendar/promoter@server/production
-
-  # Inactive Plugin Repositories
-  - files:
-      # Base Files
-      - source: templates/.nvmrc
-        dest: .nvmrc
-      - source: templates/.editorconfig
-        dest: .editorconfig
-      - source: templates/license.txt
-        dest: license.txt
-      - source: templates/.eslintignore
-        dest: .eslintignore
-      - source: templates/.stylelintrc
-        dest: .stylelintrc
-      - source: templates/babel.config.json
-        dest: babel.config.json
-      - source: templates/gulpfile.js
-        dest: gulpfile.js
-      - source: templates/.gitattributes
-        dest: .gitattributes
-
-      # GitHub Folder
-      - source: templates/pull_request_template.md
-        dest: .github/pull_request_template.md
-
-      # GitHub Workflows
-      - source: templates/workflows/lint.yml
-        dest: .github/workflows/lint.yml
-      - source: templates/workflows/link-project.yml
-        dest: .github/workflows/link-project.yml
-      - source: templates/workflows/phpcs.yml
-        dest: .github/workflows/phpcs.yml
-    repos: |
-      the-events-calendar/events-automator@main
-      the-events-calendar/events-virtual@master
-      the-events-calendar/events-community-tickets@master
-      the-events-calendar/event-tickets-wallet-plus@main
