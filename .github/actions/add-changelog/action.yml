@@ -1,0 +1,71 @@
+name: Add a new Changelog entry
+description: Using the Composer dependency to create a new changelog using Changelogger
+
+inputs:
+  file:
+    description: 'Filename'
+    default: "action-generated"
+    required: true
+  significance:
+    description: 'Changelog Significance'
+    default: 'patch'
+    required: true
+    # patch
+    # minor
+    # major
+  type:
+    description: 'Changelog Type'
+    required: true
+    # version
+    # feat
+    # tweak
+    # fix
+    # performance
+    # security
+    # accessibility
+    # compatibility
+    # deprecated
+    # language
+  entry:
+    description: 'Changelog Entry'
+    required: true
+  comment:
+    description: 'Changelog Comment'
+    default: ''
+  extra-arguments:
+    description: 'Extra arguments to be passed to the add comamnd'
+    default: "--filename-auto-suffix"
+    
+outputs:
+  glotpress-result: 
+    description: "Result from GlotPress import"
+    value: ${{ steps.fetch-results.outputs.glotpress-results }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Add composer to cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/composer/
+        key:  ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+
+    - name: Install composer dependencies
+      uses: php-actions/composer@v6
+      with:
+        php_version: 7.4
+        dev: yes
+        args: --ignore-platform-reqs
+        
+    - name: Create a Changelog with the input passed.
+      id: run-changelogger
+      shell: bash
+      run: |
+        ./vendor/bin/changelogger add \
+        --filename="${{ inputs.file }}" \
+        --significance="${{ inputs.significance }}" \
+        --type="${{ inputs.type }}" \
+        --entry="${{ inputs.entry }}" \
+        --comment="${{ inputs.comment }}" \
+        ${{ inputs.extra-arguments }} \
+        --no-interaction

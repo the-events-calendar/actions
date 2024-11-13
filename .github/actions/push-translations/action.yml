@@ -1,0 +1,69 @@
+name: Push POT file to translations.stellarwp.com
+description: Pushes the plugin POT file to translations.stellarwp.com for translations
+
+inputs:
+  plugin_slug:
+    description: 'Plugin Slug'
+    required: true
+  pot_path:
+    description: 'POT Path'
+    required: true
+
+outputs:
+  glotpress-result: 
+    description: "Result from GlotPress import"
+    value: ${{ steps.fetch-results.outputs.glotpress-results }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Generate Build ID
+      id: generate
+      shell: bash
+      run: |
+        build_uuid=$(echo "${{ github.sha }} $(date +"%Y-%m-%d %T")" | md5sum | awk '{print $1}')
+        echo "build_uuid=$build_uuid" >> $GITHUB_ENV
+        echo "build_uuid=$build_uuid" >> $GITHUB_OUTPUT
+        echo "## Build UUID: \`$build_uuid\`" >> $GITHUB_STEP_SUMMARY
+
+    - name: Deploy POT file to translations.stellarwp.com
+      uses: burnett01/rsync-deployments@7.0.1
+      with:
+        switches: -avz --omit-dir-times --no-perms
+        path: ${{ inputs.pot_path }}
+        remote_path: ${{ env.TRANSLATIONS_DEPLOY_POT_LOCATION }}tec/
+        remote_host: ${{ env.TRANSLATIONS_DEPLOY_HOST }}
+        remote_user: ${{ env.TRANSLATIONS_DEPLOY_USER }}
+        remote_key: ${{ env.TRANSLATIONS_DEPLOY_SSH_KEY }}
+
+    - name: SSH to Translations StellarWP Website
+      uses: appleboy/ssh-action@v1.1.0
+      with:
+        host: ${{ env.TRANSLATIONS_DEPLOY_HOST }}
+        username: ${{ env.TRANSLATIONS_DEPLOY_USER }}
+        key: ${{ env.TRANSLATIONS_DEPLOY_SSH_KEY }}
+        script: |
+          pwd
+          cd translations.stellarwp.com/html/
+          mkdir -p bot-output/
+          wp glotpress import-originals ${{ inputs.plugin_slug }} ${{ env.TRANSLATIONS_DEPLOY_POT_LOCATION }}tec/${{ inputs.plugin_slug }}.pot > bot-output/${{ inputs.plugin_slug }}-${{ steps.generate.outputs.build_uuid }}
+
+    - name: Output Results from Importing Pot
+      id: fetch-results
+      shell: bash
+      run: |
+        results_from_glotpress=$(curl -s https://translations.stellarwp.com/bot-output/${{ inputs.plugin_slug }}-${{ steps.generate.outputs.build_uuid }})
+
+        echo "glotpress-results=$results_from_glotpress" >> $GITHUB_OUTPUT
+        echo "## Results from GlotPress" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`$results_from_glotpress\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+    - name: Clean Bot Output
+      uses: appleboy/ssh-action@v1.1.0
+      with:
+        host: ${{ env.TRANSLATIONS_DEPLOY_HOST }}
+        username: ${{ env.TRANSLATIONS_DEPLOY_USER }}
+        key: ${{ env.TRANSLATIONS_DEPLOY_SSH_KEY }}
+        script: |
+          pwd
+          rm translations.stellarwp.com/html/bot-output/${{ inputs.plugin_slug }}-${{ steps.generate.outputs.build_uuid }}
