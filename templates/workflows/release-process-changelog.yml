@@ -112,7 +112,7 @@ jobs:
 
       - name: "Process changelog"
         id: process_changelog
-        - uses: the-events-calendar/actions/.github/actions/process-changelog@main
+        uses: the-events-calendar/actions/.github/actions/process-changelog@main
         with:
           release-version: ${{ steps.figure_out_version.outputs.RELEASE_VERSION }}
           release-date: ${{ steps.format_date.outputs.RELEASE_DATE }}
