@@ -39,25 +39,21 @@ group:
       - source: templates/bin/ModifiedSemverVersioning.php
         dest: bin/ModifiedSemverVersioning.php
 
-      # GitHub Actions
-      - source: templates/actions/process-changelog/action.yml
-        dest: .github/actions/process-changelog/action.yml
-
       # GitHub Workflows
+      - source: templates/workflows/release-process-changelog.yml
+        dest: .github/workflows/release-process-changelog.yml
+      - source: templates/workflows/release-prepare-branch.yml
+        dest: .github/workflows/release-prepare-branch.yml
+      - source: templates/workflows/release-sync-translations.yml
+        dest: .github/workflows/release-sync-translations.yml
       - source: templates/workflows/lint.yml
         dest: .github/workflows/lint.yml
-      - source: templates/workflows/process-changelog.yml
-        dest: .github/workflows/process-changelog.yml
-      - source: templates/workflows/release-branch.yml
-        dest: .github/workflows/release-branch.yml
       - source: templates/workflows/link-project.yml
         dest: .github/workflows/link-project.yml
       - source: templates/workflows/phpcs.yml
         dest: .github/workflows/phpcs.yml
       - source: templates/workflows/changelogger.yml
         dest: .github/workflows/changelogger.yml
-      - source: templates/workflows/sync-translations.yml
-        dest: .github/workflows/sync-translations.yml
     repos: |
       the-events-calendar/tribe-common@master
       the-events-calendar/the-events-calendar@master
