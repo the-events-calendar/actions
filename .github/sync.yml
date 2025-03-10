@@ -57,14 +57,14 @@ group:
       - source: templates/workflows/changelogger.yml
         dest: .github/workflows/changelogger.yml
     repos: |
-      the-events-calendar/tribe-common@master
-      the-events-calendar/the-events-calendar@master
-      the-events-calendar/events-pro@master
-      the-events-calendar/events-eventbrite@master
-      the-events-calendar/events-community@master
-      the-events-calendar/events-filterbar@master
-      the-events-calendar/event-tickets@master
-      the-events-calendar/event-tickets-plus@master
+      the-events-calendar/tribe-common@main
+      the-events-calendar/the-events-calendar@main
+      the-events-calendar/events-pro@main
+      the-events-calendar/events-eventbrite@main
+      the-events-calendar/events-community@main
+      the-events-calendar/events-filterbar@main
+      the-events-calendar/event-tickets@main
+      the-events-calendar/event-tickets-plus@main
 
   # Promoter
   - files:
