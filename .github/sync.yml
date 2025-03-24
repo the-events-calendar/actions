@@ -60,10 +60,10 @@ group:
         dest: .cursor/rules/code-style-structure.mdc
       - source: templates/.cursor/rules/engineering-guidelines.mdc
         dest: .cursor/rules/engineering-guidelines.mdc
-      - source: templates/.cursor/rules/js-react-standards.mqr
-        dest: .cursor/rules/js-react-standards.mqr
-      - source: templates/.cursor/rules/php-standards.mqr
-        dest: .cursor/rules/php-standards.mqr
+      - source: templates/.cursor/rules/js-react-standards.mdc
+        dest: .cursor/rules/js-react-standards.mdc
+      - source: templates/.cursor/rules/php-standards.mdc
+        dest: .cursor/rules/php-standards.mdc
     repos: |
       the-events-calendar/tribe-common@master
       the-events-calendar/the-events-calendar@master
