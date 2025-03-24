@@ -1,11 +1,7 @@
 ---
-description: 
-globs: 
-alwaysApply: true
----
----
 description: General guidelines on code style and structure
 globs: 
+alwaysApply: true
 ---
 
 ### Code Standards to follow

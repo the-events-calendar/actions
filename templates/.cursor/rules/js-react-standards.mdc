@@ -1,12 +1,9 @@
 ---
-description: 
-globs: 
-alwaysApply: false
----
----
 description: JavaScript/React Standards
 globs: *.js, *.jsx, *.ts, *.tsx
+alwaysApply: false
 ---
+
 ## General guidelines
 
 - Write modern ES6+ code following WordPress JS standards

@@ -1,12 +1,9 @@
 ---
-description: 
+description: PHP coding standards
 globs: *.php
 alwaysApply: false
 ---
----
-description: PHP coding standards
-globs: *.php
----
+
 - Follow WordPress PHP Coding Standards
 - Use proper WordPress prefix for functions and classes
 - Implement WordPress nonce verification
