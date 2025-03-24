@@ -1,0 +1,27 @@
+---
+description: 
+globs: *.php
+alwaysApply: false
+---
+---
+description: PHP coding standards
+globs: *.php
+---
+- Follow WordPress PHP Coding Standards
+- Use proper WordPress prefix for functions and classes
+- Implement WordPress nonce verification
+- Follow WordPress database operations best practices
+- Structure plugin hooks logically
+- Use short-array syntax
+- Prefer to bail early with conditionals to avoid cognitive load
+
+## Package Version Annotations
+
+When needing to add a package version number inside a DocBlock, please use `TBD` as such:
+
+- `@since TBD`
+- `@deprecated TBD`
+- `@deprecated since TBD`
+- `_deprecated_function( __METHOD__, 'TBD' );` (other WordPress deprecation functions also work, but note it must be all on one line).
+
+The `TBD` specifier will be automatically replaced with the correct package version number the next time a new version of that package is released.

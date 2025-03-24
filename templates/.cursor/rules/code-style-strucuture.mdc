@@ -1,0 +1,17 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: General guidelines on code style and structure
+globs: 
+---
+
+### Code Standards to follow
+
+- Use WordPress naming conventions for functions and classes  
+- Prefix any global php functions or hooks with `tec_`
+- Use lowercase with underscores for PHP functions
+- Follow WordPress React component naming patterns
+- Use BEM-like naming for SCSS
