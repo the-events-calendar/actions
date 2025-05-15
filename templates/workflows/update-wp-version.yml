@@ -1,4 +1,4 @@
-name: "Version Management"
+name: "Update WordPress Version"
 
 on:
   workflow_dispatch:
