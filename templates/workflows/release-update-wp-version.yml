@@ -73,10 +73,15 @@ jobs:
             echo "* Updated \`readme.txt\`" >> $GITHUB_STEP_SUMMARY
           fi
 
-          # Update the-events-calendar.php if minimum version is being updated
-          if [ "${{ github.event.inputs.update_min_version }}" = "yes" ] && [ -f "the-events-calendar.php" ]; then
-            sed -i "s/Requires at least: [0-9.]*/Requires at least: $MIN_VERSION/" the-events-calendar.php
-            echo "* Updated \`the-events-calendar.php\`" >> $GITHUB_STEP_SUMMARY
+          # Update plugin.php if minimum version is being updated
+          if [ "${{ github.event.inputs.update_min_version }}" = "yes" ]; then
+            # Get plugin file from .puprc versions array that is a PHP file in the base directory
+            PLUGIN_FILE=$(jq -r '.paths.versions[] | select(.file | test("^[^/]+\\.php$")) | .file' .puprc)
+
+            if [ -f "$PLUGIN_FILE" ]; then
+              sed -i "s/Requires at least: [0-9.]*/Requires at least: $MIN_VERSION/" "$PLUGIN_FILE"
+              echo "* Updated \`$PLUGIN_FILE\`" >> $GITHUB_STEP_SUMMARY
+            fi
           fi
 
           # Update tests-php.yml and other workflow files if minimum version is being updated (skips self)
