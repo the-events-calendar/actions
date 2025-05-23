@@ -58,8 +58,8 @@ group:
         dest: .github/workflows/phpcs.yml
       - source: templates/workflows/changelogger.yml
         dest: .github/workflows/changelogger.yml
-      - source: templates/workflows/update-wp-version.yml
-        dest: .github/workflows/update-wp-version.yml
+      - source: templates/workflows/release-update-wp-version.yml
+        dest: .github/workflows/release-update-wp-version.yml
     repos: |
       the-events-calendar/tribe-common@master
       the-events-calendar/the-events-calendar@master
