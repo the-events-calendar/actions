@@ -12,12 +12,8 @@ group:
         dest: license.txt
       - source: templates/.eslintignore
         dest: .eslintignore
-      - source: templates/.stylelintrc
-        dest: .stylelintrc
-      - source: templates/babel.config.json
-        dest: babel.config.json
-      - source: templates/gulpfile.js
-        dest: gulpfile.js
+      - source: templates/.stylelintrc.json
+        dest: .stylelintrc.json
       - source: templates/.gitattributes
         dest: .gitattributes
 
