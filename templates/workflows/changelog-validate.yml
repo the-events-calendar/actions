@@ -1,0 +1,20 @@
+name: "Changelog: Validate"
+
+on:
+  pull_request:
+
+jobs:
+  validate-changelog:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.pull_request.body, '[skip-changelog]')"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for git diff operations
+
+      - name: Validate changelog changes
+        uses: stellarwp/changelogger@main
+        with:
+          command: validate
+          from: ${{ github.event.pull_request.base.sha }}
+          to: ${{ github.event.pull_request.head.sha }} 
