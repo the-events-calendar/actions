@@ -130,23 +130,28 @@ jobs:
 ## Features
 
 ### Change Detection
+
 - **WordPress Hooks**: Detects `apply_filters()` and `do_action()` calls
 - **View Files**: Identifies changes to PHP view templates in `src/views/`
 - **Git Diff Analysis**: Compares against specified commit or latest tag
 - **Deduplication**: Automatically removes duplicate entries
 
 ### Output Formats
+
 - **Changelog**: WordPress-style changelog entries (`* Tweak - Added filters: ...`)
 - **List**: Simple bullet-point lists
 - **HTML**: Formatted HTML with headings and code samples
 
 ### Automatic Changelog Generation
+
 When `output-format` is set to `changelog`, the action automatically:
+
 - Creates individual changelog entries for each change type
 - Uses the `add-changelog` action to generate proper entries
 - Files are named `task-analyze-changes-{type}-{sha}`
 
 ### GitHub Integration
+
 - **Step Summary**: Displays results in GitHub Actions UI
 - **Detailed Outputs**: All detected changes available as action outputs
 - **Conditional Execution**: Easy integration with conditional workflow steps
@@ -156,6 +161,7 @@ When `output-format` is set to `changelog`, the action automatically:
 The action searches for these patterns in git diffs:
 
 ### Filters
+
 ```php
 // Added filter (detected)
 + apply_filters('new_filter_name', $value);
@@ -165,6 +171,7 @@ The action searches for these patterns in git diffs:
 ```
 
 ### Actions
+
 ```php
 // Added action (detected)
 + do_action('new_action_name', $data);
@@ -174,7 +181,8 @@ The action searches for these patterns in git diffs:
 ```
 
 ### Views
-```
+
+```text
 // View file change (detected)
 diff --git a/src/views/single-event.php b/src/views/single-event.php
 ```
@@ -188,6 +196,7 @@ This action replaces the `analyze-changes.yml` reusable workflow. The main diffe
 3. **Outputs**: Access through step outputs instead of job outputs
 
 ### Before (Reusable Workflow)
+
 ```yaml
 uses: ./.github/workflows/reusable/release-process/analyze-changes.yml
 with:
@@ -196,6 +205,7 @@ with:
 ```
 
 ### After (Composite Action)
+
 ```yaml
 uses: the-events-calendar/actions/.github/actions/analyze-changes@main
 with:
@@ -206,14 +216,16 @@ with:
 ## Example Output
 
 ### Changelog Format
-```
+
+```text
 * Tweak - Added filters: `tribe_events_new_filter`, `tribe_events_another_filter`
 * Tweak - Removed actions: `tribe_events_old_action`
 * Tweak - Changed views: `single-event`, `list/list-view`
 ```
 
 ### List Format
-```
+
+```text
 Added filters:
 - tribe_events_new_filter
 - tribe_events_another_filter
@@ -225,6 +237,7 @@ Changed views:
 ```
 
 ### HTML Format
+
 ```html
 <h4>Filters added</h4>
 <ul>
@@ -247,16 +260,19 @@ Changed views:
 ## Troubleshooting
 
 ### No changes detected
+
 - Verify the compare commit exists and is accessible
 - Check that changes exist in PHP files
 - Ensure the repository has sufficient git history
 
 ### Missing hook detection
+
 - Verify hooks use standard WordPress syntax: `apply_filters('hook_name', ...)`
 - Check that changes are in tracked files
 - Ensure proper git diff is generated
 
 ### Changelog entries not created
+
 - Verify `output-format` is set to `'changelog'`
 - Check that `add-changelog` action is available
 - Ensure proper permissions for file creation

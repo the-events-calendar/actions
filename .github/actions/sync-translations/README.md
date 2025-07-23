@@ -117,13 +117,17 @@ jobs:
 ## Features
 
 ### Automatic Branch Detection
+
 The action automatically determines if translations should be synced based on the branch:
+
 - **Main/Master branches**: Always sync
 - **Release branches** (`release/*`): Always sync
 - **Other branches**: Skip sync (POT generation only)
 
 ### Plugin Configuration
+
 Reads plugin configuration from `.puprc` file:
+
 ```json
 {
   "i18n": [
@@ -136,16 +140,19 @@ Reads plugin configuration from `.puprc` file:
 ```
 
 ### POT File Generation
+
 - Automatically generates translation template (POT) files
 - Uses the plugin's text domain and translatable strings
 - Stores POT files in the `lang/` directory
 
 ### GlotPress Integration
+
 - Pushes POT files to translation management system
 - Updates existing translations with new strings
 - Provides status feedback on translation updates
 
 ### Changelog Integration
+
 - Automatically creates changelog entries for translation updates
 - Uses the `add-changelog` action for consistent formatting
 - Includes GlotPress result information
@@ -153,14 +160,18 @@ Reads plugin configuration from `.puprc` file:
 ## Branch Behavior
 
 ### Release/Main Branches
+
 When running on `main`, `master`, or `release/*` branches:
+
 1. Generates POT file
 2. Pushes translations to GlotPress
 3. Creates changelog entry
 4. Sets `changes-made` to `1`
 
 ### Development Branches
+
 When running on other branches:
+
 1. Generates POT file only
 2. Skips GlotPress push
 3. Skips changelog entry
@@ -169,6 +180,7 @@ When running on other branches:
 ## Required Secrets
 
 ### Translation Deployment Secrets
+
 Configure these secrets in your repository:
 
 ```yaml
@@ -185,6 +197,7 @@ TRANSLATIONS_POT_LOCATION: "/path/to/translations/"
 ## Configuration Requirements
 
 ### .puprc File
+
 The repository must contain a `.puprc` file with translation configuration:
 
 ```json
@@ -199,8 +212,10 @@ The repository must contain a `.puprc` file with translation configuration:
 ```
 
 ### Directory Structure
+
 Expected directory structure:
-```
+
+```text
 plugin-root/
 ├── .puprc                    # Plugin configuration
 ├── lang/                     # Translation files directory
@@ -212,12 +227,14 @@ plugin-root/
 ## Example Output
 
 ### Successful Sync
+
 ```yaml
 translation-summary: "POT file updated with 150 strings, pushed to GlotPress successfully"
 changes-made: "1"
 ```
 
 ### Skipped Sync (Development Branch)
+
 ```yaml
 translation-summary: "No translation sync performed (not a release branch)"
 changes-made: "0"
@@ -226,6 +243,7 @@ changes-made: "0"
 ## Integration Examples
 
 ### With Other Release Actions
+
 ```yaml
 name: Complete Release Process
 on:
@@ -258,6 +276,7 @@ jobs:
 ```
 
 ### Scheduled Translation Updates
+
 ```yaml
 name: Weekly Translation Sync
 on:
@@ -284,6 +303,7 @@ jobs:
 This action replaces the `sync-translations.yml` reusable workflow.
 
 ### Before (Reusable Workflow)
+
 ```yaml
 uses: ./.github/workflows/reusable/release-process/sync-translations.yml
 with:
@@ -296,6 +316,7 @@ secrets:
 ```
 
 ### After (Composite Action)
+
 ```yaml
 uses: the-events-calendar/actions/.github/actions/sync-translations@main
 with:
@@ -307,6 +328,7 @@ with:
 ```
 
 ### Key Differences
+
 1. **Secrets → Inputs**: Translation secrets are now passed as inputs
 2. **Usage**: Direct action call instead of workflow call
 3. **Setup**: Uses `basic-setup` action instead of workflow
@@ -314,13 +336,16 @@ with:
 ## Dependencies
 
 ### Required Actions
+
 This action depends on:
+
 - `the-events-calendar/actions/.github/actions/basic-setup@main`
 - `the-events-calendar/actions/.github/actions/generate-pot@main`
 - `the-events-calendar/actions/.github/actions/push-translations@main`
 - `the-events-calendar/actions/.github/actions/add-changelog@main`
 
 ### System Requirements
+
 - **jq**: For JSON parsing (.puprc file)
 - **Git**: For repository operations
 - **SSH**: For secure translation file deployment
@@ -328,6 +353,7 @@ This action depends on:
 ## Best Practices
 
 ### Secret Management
+
 ```yaml
 # Use environment-specific secrets
 - name: Sync translations (Production)
@@ -350,6 +376,7 @@ This action depends on:
 ```
 
 ### Error Handling
+
 ```yaml
 - name: Sync translations
   id: sync-translations
@@ -369,6 +396,7 @@ This action depends on:
 ```
 
 ### Conditional Execution
+
 ```yaml
 - name: Check if translations needed
   id: check-translations
@@ -392,40 +420,53 @@ This action depends on:
 ## Troubleshooting
 
 ### Missing .puprc File
-```
+
+```text
 Error: .puprc file not found or invalid
 ```
+
 **Solution**: Ensure `.puprc` exists in repository root with valid translation configuration.
 
 ### SSH Connection Issues
-```
+
+```text
 Error: Could not connect to translation server
 ```
+
 **Solutions**:
+
 - Verify SSH key format and permissions
 - Check host and user credentials
 - Ensure server is accessible from GitHub Actions
 
 ### POT Generation Failure
-```
+
+```text
 Error: Failed to generate POT file
 ```
+
 **Solutions**:
+
 - Check for translatable strings in source code
 - Verify source file paths and structure
 - Ensure proper text domain usage
 
 ### GlotPress Push Failure
-```
+
+```text
 Error: Failed to push translations to GlotPress
 ```
+
 **Solutions**:
+
 - Verify deployment path exists and is writable
 - Check GlotPress server status
 - Ensure proper file permissions on target server
 
 ### Plugin Slug Detection
-```
+
+```text
 Warning: Could not determine plugin slug
 ```
+
 **Solution**: Verify `.puprc` file contains valid `i18n` configuration with translation URL and slug.

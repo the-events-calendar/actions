@@ -182,23 +182,27 @@ jobs:
     action-type: 'generate'
 ```
 
-## Features
+## Integration Features
 
 ### Version Auto-Detection
+
 - **Smart Detection**: Automatically finds version from `.puprc` configuration
 - **Multiple Sources**: Supports various version file formats and regex patterns
 - **Validation**: Ensures version follows semantic versioning (x.y.z or x.y.z.w)
 
 ### Date Handling
+
 - **Human-Readable Input**: Accepts dates like "today", "2024-01-15", "next Friday"
 - **Automatic Formatting**: Converts to YYYY-MM-DD format for consistency
 - **Flexible Parsing**: Uses `date` command for robust date parsing
 
-### Action Types
+### Integration Action Types
+
 - **Generate**: Creates new changelog entries from pending changes
 - **Amend**: Modifies existing changelog entries for a specific version
 
-### Dependencies
+### Integration Dependencies
+
 - **PHP Environment**: Sets up PHP 7.4 with Composer
 - **Git Integration**: Configures Git for potential commits
 - **Basic Setup**: Uses shared setup action for consistent environment
@@ -247,6 +251,7 @@ project-root/
 The action reads version information from `.puprc` configuration:
 
 #### Example .puprc structure
+
 ```json
 {
   "paths": {
@@ -265,6 +270,7 @@ The action reads version information from `.puprc` configuration:
 ```
 
 ### Version Detection Process
+
 1. Checks if `.puprc` file exists
 2. Validates `paths.versions` configuration
 3. Iterates through version sources
@@ -331,6 +337,7 @@ Fixed issue with event display on mobile devices
 ## Date Processing
 
 ### Supported Date Formats
+
 ```yaml
 # Absolute dates
 release-date: '2024-01-15'
@@ -347,6 +354,7 @@ release-date: 'today'  # Default if not specified
 ```
 
 ### Output Format
+
 All dates are converted to `YYYY-MM-DD` format for consistency.
 
 ## Trimming Behavior
@@ -395,6 +403,7 @@ All dates are converted to `YYYY-MM-DD` format for consistency.
 This action replaces the `process-changelog.yml` reusable workflow.
 
 ### Before (Reusable Workflow)
+
 ```yaml
 uses: ./.github/workflows/reusable/release-process/process-changelog.yml
 with:
@@ -405,6 +414,7 @@ with:
 ```
 
 ### After (Composite Action)
+
 ```yaml
 uses: the-events-calendar/actions/.github/actions/process-changelog@main
 with:
@@ -415,6 +425,7 @@ with:
 ```
 
 ### Key Differences
+
 1. **Usage**: Direct action call instead of workflow call
 2. **Setup**: Uses `basic-setup` action instead of workflow
 3. **Outputs**: Access through step outputs instead of job outputs
@@ -431,6 +442,7 @@ This action is designed to be used within release workflows and integrates seaml
 ## Best Practices
 
 ### Version Management
+
 ```yaml
 # Let the action auto-detect version
 - uses: the-events-calendar/actions/.github/actions/process-changelog@main
@@ -444,6 +456,7 @@ This action is designed to be used within release workflows and integrates seaml
 ```
 
 ### Conditional Processing
+
 ```yaml
 - name: Check if changelog needed
   id: check
@@ -458,6 +471,7 @@ This action is designed to be used within release workflows and integrates seaml
 ```
 
 ### Error Recovery
+
 ```yaml
 - name: Process changelog
   id: process
@@ -474,6 +488,7 @@ This action is designed to be used within release workflows and integrates seaml
 ## Output Examples
 
 ### Success Output
+
 ```yaml
 # Output values
 changelog-content: "Changelog processed for version 6.2.0 on 2024-01-15"
@@ -481,7 +496,9 @@ changes-made: "true"
 ```
 
 ### With Custom Summary
+
 If the underlying `process-changelog` action provides a summary:
+
 ```yaml
 changelog-content: "Generated changelog for 6.2.0 with 15 entries"
 changes-made: "true"
@@ -498,18 +515,23 @@ The action includes comprehensive error handling for:
 - Empty changelog directories
 
 ### Missing .puprc File
-```
+
+```text
 Error: .puprc file not found
 ```
+
 **Solution**: Ensure `.puprc` configuration file exists in repository root.
 
 ### Missing paths.versions
-```
+
+```text
 Error: paths.versions not found in .puprc
 ```
+
 **Solution**: Add version configuration to `.puprc` file.
 
 ### Version Detection Failure
+
 If auto-detection fails, the action will continue but may not have a valid version.
 **Solution**: Specify `release-version` explicitly.
 
@@ -534,21 +556,25 @@ If auto-detection fails, the action will continue but may not have a valid versi
    - Check word count calculation logic
 
 ### Composer Issues
+
 - Ensure `composer.json` exists and is valid
 - Check PHP version compatibility
 - Verify network access for dependency downloads
 
 ### Git Configuration Issues
+
 - Check repository permissions
 - Ensure Git is properly configured
 - Verify branch access
 
 ### Date Parsing Errors
+
 - Use standard date formats
 - Check locale settings if using relative dates
 - Verify `date` command availability
 
 ### Version Detection Problems
+
 - Validate `.puprc` JSON syntax
 - Check file paths in version configuration
 - Ensure regex patterns are correct

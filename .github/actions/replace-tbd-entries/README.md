@@ -72,19 +72,25 @@ jobs:
 ## Features
 
 ### Version Detection
+
 The action automatically detects the current version from:
+
 1. **package.json** - Looks for `"version": "x.y.z"` field
 2. **PHP Plugin Files** - Searches for `Version: x.y.z` headers in PHP files
 
 ### File Type Support
+
 Searches and replaces TBD entries in:
+
 - **PHP files** (*.php)
-- **JavaScript files** (*.js, *.jsx, *.ts, *.tsx)
-- **CSS files** (*.css, *.pcss)
-- **Documentation** (*.md, *.txt)
+- **JavaScript files** (*.js,*.jsx, *.ts,*.tsx)
+- **CSS files** (*.css,*.pcss)
+- **Documentation** (*.md,*.txt)
 
 ### Directory Exclusions
+
 Automatically excludes common directories:
+
 - `.git/` - Git repository files
 - `.github/` - GitHub workflow files
 - `changelog/` - Changelog entries
@@ -96,6 +102,7 @@ Automatically excludes common directories:
 - `vendor/` - Third-party dependencies
 
 ### GitHub Integration
+
 - **Step Summary**: Shows detailed information about found TBD entries
 - **File Links**: Creates clickable links to specific lines where TBD was found
 - **Change Tracking**: Reports whether any changes were actually made
@@ -105,6 +112,7 @@ Automatically excludes common directories:
 Common patterns where TBD is used as a placeholder:
 
 ### PHP DocBlocks
+
 ```php
 /**
  * New feature added in version TBD
@@ -118,6 +126,7 @@ function new_feature($value) {
 ```
 
 ### JavaScript Comments
+
 ```javascript
 /**
  * @since TBD
@@ -129,6 +138,7 @@ const newFeature = () => {
 ```
 
 ### CSS Comments
+
 ```css
 /* Added in version TBD */
 .new-feature {
@@ -137,6 +147,7 @@ const newFeature = () => {
 ```
 
 ### Documentation
+
 ```markdown
 ## Changelog
 
@@ -148,11 +159,13 @@ const newFeature = () => {
 ## Version Detection Logic
 
 ### Priority Order
+
 1. **package.json** version (if file exists)
 2. **PHP plugin header** version (first found)
 3. **Default fallback** (0.0.0)
 
 ### Version Formats Supported
+
 - Standard semantic versioning: `1.2.3`
 - Extended versioning: `1.2.3.4`
 - Version with pre-release info: `1.2.3-beta.1` (extracts `1.2.3`)
@@ -160,8 +173,10 @@ const newFeature = () => {
 ## Output Examples
 
 ### Step Summary
+
 When TBD entries are found:
-```
+
+```text
 ### Debugging Information
 - Current ref: `release/6.2.0`
 
@@ -174,7 +189,8 @@ When TBD entries are found:
 ```
 
 When no TBD entries found:
-```
+
+```text
 ### Debugging Information
 - Current ref: `main`
 
@@ -188,6 +204,7 @@ No TBD entries found in the repository.
 ## Workflow Integration
 
 ### Pre-Release Automation
+
 ```yaml
 name: Pre-Release
 on:
@@ -209,6 +226,7 @@ jobs:
 ```
 
 ### Manual Release Process
+
 ```yaml
 name: Manual Release Prep
 on:
@@ -242,6 +260,7 @@ jobs:
 This action replaces the `replace-tbd-entries.yml` reusable workflow.
 
 ### Before (Reusable Workflow)
+
 ```yaml
 uses: ./.github/workflows/reusable/release-process/replace-tbd-entries.yml
 with:
@@ -249,6 +268,7 @@ with:
 ```
 
 ### After (Composite Action)
+
 ```yaml
 uses: the-events-calendar/actions/.github/actions/replace-tbd-entries@main
 with:
@@ -256,6 +276,7 @@ with:
 ```
 
 ### Key Differences
+
 1. **Usage**: Direct action call instead of workflow call
 2. **Setup**: Uses `basic-setup` action instead of workflow
 3. **Outputs**: Access through step outputs instead of job outputs
@@ -263,6 +284,7 @@ with:
 ## Best Practices
 
 ### Release Branch Usage
+
 ```yaml
 # Only run on release branches
 on:
@@ -276,6 +298,7 @@ on:
 ```
 
 ### Error Handling
+
 ```yaml
 - name: Replace TBD entries
   id: replace-tbd
@@ -288,7 +311,9 @@ on:
 ```
 
 ### Git Configuration
+
 The action automatically configures Git, but you may want to use a bot account:
+
 ```yaml
 - name: Configure Git
   run: |
@@ -302,25 +327,33 @@ The action automatically configures Git, but you may want to use a bot account:
 ## Troubleshooting
 
 ### No Version Found
+
 If the action outputs version `0.0.0`, ensure:
+
 - `package.json` exists with valid version field
 - PHP files contain proper plugin headers with `Version:` field
 - Files are in the repository root or accessible path
 
 ### Permission Issues
+
 If files can't be modified:
+
 - Check repository permissions
 - Ensure the action has write access
 - Verify files aren't read-only
 
 ### Large Repositories
+
 For repositories with many files:
+
 - The action may take longer to complete
 - Consider excluding additional directories if needed
 - Monitor action timeout limits
 
-### Git Configuration
+### Troublehshooting Git Configuration
+
 If Git operations fail:
+
 - Ensure Git is properly configured
 - Check if the repository allows push operations
 - Verify branch protection rules don't prevent automated commits
