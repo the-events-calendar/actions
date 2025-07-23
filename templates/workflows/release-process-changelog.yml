@@ -23,6 +23,11 @@ on:
           - amend
           - generate
           - amend-version
+      changelog-full-url:
+        description: "URL to link to the full changelog when trimming is applied (default: https://evnt.is/1b5k)."
+        required: false
+        default: "https://evnt.is/1b5k"
+        type: string
 
 defaults:
   run:
@@ -36,6 +41,7 @@ jobs:
       CHANGELOG_ACTION: ${{ inputs.action-type }}
       RELEASE_VERSION: ${{ inputs.release-version }}
       RELEASE_DATE: ${{ inputs.release-date }}
+      CHANGELOG_FULL_URL: ${{ inputs.changelog-full-url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -117,6 +123,7 @@ jobs:
           release-version: ${{ steps.figure_out_version.outputs.RELEASE_VERSION }}
           release-date: ${{ steps.format_date.outputs.RELEASE_DATE }}
           action-type: ${{ env.CHANGELOG_ACTION }}
+          changelog-full-url: ${{ env.CHANGELOG_FULL_URL }}
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
