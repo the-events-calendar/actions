@@ -19,16 +19,16 @@ This composite action sets up a basic environment for CI/CD workflows, including
 
 ```yaml
 - name: Setup environment
-  uses: ./.github/actions/basic-setup
+  uses: the-events-calendar/actions/.github/actions/basic-setup@main
 ```
 
 ### Setup with both PHP and Node.js
 
 ```yaml
 - name: Setup environment
-  uses: ./.github/actions/basic-setup
+  uses: the-events-calendar/actions/.github/actions/basic-setup@main
   with:
-    setup-node: true
+    setup-node: 'true'
     php-version: '8.1'
     node-version-file: '.nvmrc'
 ```
@@ -37,18 +37,18 @@ This composite action sets up a basic environment for CI/CD workflows, including
 
 ```yaml
 - name: Setup environment
-  uses: ./.github/actions/basic-setup
+  uses: the-events-calendar/actions/.github/actions/basic-setup@main
   with:
     fetch-depth: 50
     gh-bot-token: ${{ secrets.BOT_TOKEN }}
-    setup-node: true
+    setup-node: 'true'
 ```
 
 ### Node.js only setup
 
 ```yaml
 - name: Setup environment
-  uses: ./.github/actions/basic-setup
+  uses: the-events-calendar/actions/.github/actions/basic-setup@main
   with:
     setup-php: false
     setup-node: true
@@ -68,7 +68,7 @@ This action replaces the `basic-setup.yml` reusable workflow. The main differenc
 
 1. **Secrets**: The `gh-bot-token` is now passed as an input instead of a secret
 2. **Boolean inputs**: Must be passed as strings (`'true'`/`'false'`) instead of boolean values
-3. **Usage**: Called with `uses: ./.github/actions/basic-setup` instead of `uses: ./.github/workflows/reusable/basic-setup.yml`
+3. **Usage**: Called with `uses: the-events-calendar/actions/.github/actions/basic-setup@main` instead of `uses: ./.github/workflows/reusable/basic-setup.yml`
 
 ### Before (Reusable Workflow)
 ```yaml
@@ -81,7 +81,7 @@ secrets:
 
 ### After (Composite Action)
 ```yaml
-uses: ./.github/actions/basic-setup
+uses: the-events-calendar/actions/.github/actions/basic-setup@main
 with:
   setup-node: 'true'
   gh-bot-token: ${{ secrets.BOT_TOKEN }}

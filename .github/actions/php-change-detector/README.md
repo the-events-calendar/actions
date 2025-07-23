@@ -22,7 +22,7 @@ This composite action detects whether PHP files have changed in a pull request a
 ```yaml
 - name: Check PHP changes
   id: php-changes
-  uses: ./.github/actions/php-change-detector
+  uses: the-events-calendar/actions/.github/actions/php-change-detector@main
 
 - name: Run PHP tests
   if: steps.php-changes.outputs.should-run == '1'
@@ -34,7 +34,7 @@ This composite action detects whether PHP files have changed in a pull request a
 ```yaml
 - name: Check PHP changes
   id: php-changes
-  uses: ./.github/actions/php-change-detector
+  uses: the-events-calendar/actions/.github/actions/php-change-detector@main
   with:
     skip-flag: phpcs
 
@@ -55,7 +55,7 @@ jobs:
     steps:
       - name: Check PHP changes
         id: php-changes
-        uses: ./.github/actions/php-change-detector
+        uses: the-events-calendar/actions/.github/actions/php-change-detector@main
 
   php-tests:
     needs: check-changes
@@ -95,7 +95,7 @@ This PR updates documentation only.
 
 This action replaces the `php-change-detector.yml` reusable workflow. The main differences:
 
-1. **Usage**: Called with `uses: ./.github/actions/php-change-detector` instead of workflow call
+1. **Usage**: Called with `uses: the-events-calendar/actions/.github/actions/php-change-detector@main` instead of workflow call
 2. **Outputs**: Access outputs through step outputs instead of job outputs
 3. **Skip Logic**: The skip condition logic is now handled internally within the action
 
@@ -108,7 +108,7 @@ with:
 
 ### After (Composite Action)
 ```yaml
-uses: ./.github/actions/php-change-detector
+uses: the-events-calendar/actions/.github/actions/php-change-detector@main
 with:
   skip-flag: phpcs
 ```
