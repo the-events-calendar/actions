@@ -341,11 +341,11 @@ $text = __( 'Save Changes', 'my-plugin' );
 _e( 'Loading...', 'my-plugin' );
 
 // Pluralization
-$message = _n( 
-    '%d item selected', 
-    '%d items selected', 
-    $count, 
-    'my-plugin' 
+$message = _n(
+    '%d item selected',
+    '%d items selected',
+    $count,
+    'my-plugin'
 );
 
 // Translation with context
@@ -387,4 +387,4 @@ For large plugins:
   with:
     plugin_path: ./
     pot_path: ./languages/plugin.pot
-``` 
+```

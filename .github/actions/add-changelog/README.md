@@ -280,4 +280,4 @@ jobs:
     steps:
       - name: Process changelog for release
         uses: the-events-calendar/actions/.github/actions/process-changelog@main
-``` 
+```

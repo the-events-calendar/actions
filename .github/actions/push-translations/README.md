@@ -397,4 +397,4 @@ For plugins with many translatable strings:
   with:
     plugin_slug: my-plugin
     pot_path: ./languages/my-plugin.pot
-``` 
+```
