@@ -350,7 +350,7 @@ For repositories with many files:
 - Consider excluding additional directories if needed
 - Monitor action timeout limits
 
-### Troublehshooting Git Configuration
+### Troubleshooting Git Configuration
 
 If Git operations fail:
 

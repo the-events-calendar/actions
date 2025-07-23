@@ -5,12 +5,15 @@ This document summarizes the updates made to template workflows in `templates/wo
 ## Files Updated
 
 ### ✅ `changelogger.yml`
+
 **Changes Made:**
+
 - Replaced manual checkout, PHP setup, and caching with `basic-setup` action
 - Updated to use structured composer caching approach
 - Maintained backward compatibility with existing workflow structure
 
 **Before:**
+
 ```yaml
 steps:
   - uses: actions/checkout@v4
@@ -31,6 +34,7 @@ steps:
 ```
 
 **After:**
+
 ```yaml
 steps:
   - name: Setup environment
@@ -51,11 +55,14 @@ steps:
 ```
 
 ### ✅ `lint.yml`
+
 **Changes Made:**
+
 - Replaced manual checkout and Node.js setup with `basic-setup` action
 - Simplified workflow by removing .nvmrc detection logic (now handled by action)
 
 **Before:**
+
 ```yaml
 steps:
   - name: Checkout the repository
@@ -80,6 +87,7 @@ steps:
 ```
 
 **After:**
+
 ```yaml
 steps:
   - name: Setup environment
@@ -90,12 +98,15 @@ steps:
 ```
 
 ### ✅ `phpcs.yml`
+
 **Changes Made:**
+
 - Replaced manual PHP change detection with `php-change-detector` action
 - Updated condition logic to use new output names
 - Updated secret name to match organizational standard
 
 **Before:**
+
 ```yaml
 conditional:
   if: "!contains(github.event.pull_request.body, '[skip-phpcs]')"
@@ -117,6 +128,7 @@ conditional:
 ```
 
 **After:**
+
 ```yaml
 conditional:
   runs-on: ubuntu-latest
@@ -132,12 +144,15 @@ conditional:
 ```
 
 ### ✅ `release-process-changelog.yml`
+
 **Changes Made:**
+
 - Replaced manual PHP setup with `basic-setup` action
 - Added proper composer caching
 - Maintained existing process-changelog action usage
 
 **Before:**
+
 ```yaml
 steps:
   - name: Checkout repository
@@ -154,6 +169,7 @@ steps:
 ```
 
 **After:**
+
 ```yaml
 steps:
   - name: Setup environment
@@ -176,10 +192,12 @@ steps:
 ## Files Already Using Actions
 
 ### ✅ `release-sync-translations.yml`
+
 - Already correctly uses `generate-pot`, `push-translations`, and `add-changelog` actions
 - No changes needed
 
 ### ✅ Other Release Templates
+
 - `release-replace-tbd-entries.yml` - Uses manual setup (appropriate for this workflow)
 - `release-update-wp-version.yml` - Uses manual setup (appropriate for this workflow)
 - `release-merge-forward.yml` - Uses manual setup (appropriate for this workflow)
@@ -189,6 +207,7 @@ steps:
 ## Files Removed
 
 ### ❌ Redundant Reusable Workflows
+
 - `/.github/workflows/reusable/basic-setup.yml`
 - `/.github/workflows/reusable/php-change-detector.yml`
 - `/.github/workflows/reusable/slic-test-runner.yml`
@@ -205,11 +224,13 @@ steps:
 ## Usage Impact
 
 ### For New Plugins
+
 - Copy templates directly from `templates/workflows/`
 - Templates will automatically use the latest action versions
 - Minimal customization needed
 
 ### For Existing Plugins
+
 - Existing workflows already updated to use actions
 - Templates provide reference for future workflows
 - Consistent patterns across the organization

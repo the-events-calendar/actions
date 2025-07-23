@@ -109,6 +109,7 @@ jobs:
 ## Test Suites
 
 Common test suites you can run:
+
 - `unit` - Unit tests
 - `integration` - Integration tests
 - `wpunit` - WordPress unit tests
@@ -119,6 +120,7 @@ Common test suites you can run:
 ## Skip Flag Behavior
 
 If a `skip-flag` is provided and the PR body contains `[skip-{flag}]`, the action will:
+
 - Skip all test execution
 - Add a skip message to the GitHub step summary
 
@@ -127,6 +129,7 @@ Example: Adding `[skip-views-core]` to your PR description will skip the views-c
 ## Environment Variables
 
 The action sets up several environment variables:
+
 - `SLIC_BIN` - Path to the slic binary
 - `SLIC_WP_DIR` - WordPress directory path
 - `SLIC_WORDPRESS_DOCKERFILE` - Docker file to use
@@ -137,6 +140,7 @@ The action sets up several environment variables:
 ## WordPress Setup
 
 The action automatically:
+
 1. Updates WordPress to the specified version
 2. Installs and activates the Twenty Twenty theme
 3. Sets up The Events Calendar and common plugins
@@ -151,6 +155,7 @@ This action replaces the `slic-test-runner.yml` reusable workflow. The main diff
 3. **Skip Logic**: The skip condition logic is now handled internally within the action
 
 ### Before (Reusable Workflow)
+
 ```yaml
 uses: ./.github/workflows/reusable/slic-test-runner.yml
 with:
@@ -161,6 +166,7 @@ secrets:
 ```
 
 ### After (Composite Action)
+
 ```yaml
 uses: ./.github/actions/slic-test-runner
 with:
@@ -172,16 +178,19 @@ with:
 ## Troubleshooting
 
 ### Tests not running
+
 - Check if PHP files have changed in your PR
 - Verify the suite name is correct
 - Check for skip flags in the PR description
 
 ### Docker issues
+
 - Ensure sufficient disk space
 - Check Docker daemon is running
 - Review slic logs for specific errors
 
 ### WordPress version issues
+
 - Verify the WordPress version exists
 - Check if the version is compatible with your plugins
 - Review WordPress core update logs

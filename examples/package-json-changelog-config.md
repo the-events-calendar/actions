@@ -5,6 +5,7 @@ This document shows how each TEC plugin should configure their changelog URL in 
 ## The Events Calendar
 
 Add to `package.json`:
+
 ```json
 {
   "name": "the-events-calendar",
@@ -19,6 +20,7 @@ Add to `package.json`:
 ## Event Tickets
 
 Add to `package.json`:
+
 ```json
 {
   "name": "event-tickets",
@@ -33,6 +35,7 @@ Add to `package.json`:
 ## Events Pro
 
 Add to `package.json`:
+
 ```json
 {
   "name": "events-pro",
@@ -47,6 +50,7 @@ Add to `package.json`:
 ## Event Tickets Plus
 
 Add to `package.json`:
+
 ```json
 {
   "name": "event-tickets-plus",
@@ -61,6 +65,7 @@ Add to `package.json`:
 ## Events Community
 
 Add to `package.json`:
+
 ```json
 {
   "name": "events-community",
@@ -75,6 +80,7 @@ Add to `package.json`:
 ## Events Filter Bar
 
 Add to `package.json`:
+
 ```json
 {
   "name": "events-filterbar",
@@ -89,6 +95,7 @@ Add to `package.json`:
 ## Events Eventbrite
 
 Add to `package.json`:
+
 ```json
 {
   "name": "events-eventbrite",
@@ -103,6 +110,7 @@ Add to `package.json`:
 ## Tribe Common
 
 Add to `package.json`:
+
 ```json
 {
   "name": "tribe-common",

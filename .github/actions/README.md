@@ -7,6 +7,7 @@ This repository provides a collection of reusable GitHub Actions specifically de
 ### 🛠️ Setup and Infrastructure
 
 #### [basic-setup](./basic-setup/)
+
 Sets up a basic environment for CI/CD workflows with PHP and Node.js configuration.
 
 ```yaml
@@ -20,6 +21,7 @@ Sets up a basic environment for CI/CD workflows with PHP and Node.js configurati
 ### 🔧 Utility Actions
 
 #### [detect-version](./detect-version/)
+
 Detects the current version from package.json, PHP files, or .puprc configuration.
 
 ```yaml
@@ -29,6 +31,7 @@ Detects the current version from package.json, PHP files, or .puprc configuratio
 ```
 
 #### [check-skip-flag](./check-skip-flag/)
+
 Checks for skip flags in PR descriptions to determine if actions should be skipped.
 
 ```yaml
@@ -38,6 +41,7 @@ Checks for skip flags in PR descriptions to determine if actions should be skipp
 ```
 
 #### [detect-branch-type](./detect-branch-type/)
+
 Analyzes Git branch names to determine their type and characteristics for conditional workflow logic.
 
 ```yaml
@@ -47,6 +51,7 @@ Analyzes Git branch names to determine their type and characteristics for condit
 ### 🔍 Code Analysis
 
 #### [php-change-detector](./php-change-detector/)
+
 Detects PHP file changes in pull requests and provides conditional execution logic.
 
 ```yaml
@@ -58,6 +63,7 @@ Detects PHP file changes in pull requests and provides conditional execution log
 ### 🧪 Testing
 
 #### [slic-test-runner](./slic-test-runner/)
+
 Runs PHP tests using the slic testing framework with WordPress environment setup.
 
 ```yaml
@@ -70,6 +76,7 @@ Runs PHP tests using the slic testing framework with WordPress environment setup
 ### 📝 Release Management
 
 #### [analyze-changes](./analyze-changes/)
+
 Analyzes git changes to detect WordPress hooks (filters/actions) and view modifications for release documentation.
 
 ```yaml
@@ -80,6 +87,7 @@ Analyzes git changes to detect WordPress hooks (filters/actions) and view modifi
 ```
 
 #### [process-changelog](./process-changelog/)
+
 Processes changelogs for plugin releases with automatic version detection and formatting.
 
 ```yaml
@@ -90,6 +98,7 @@ Processes changelogs for plugin releases with automatic version detection and fo
 ```
 
 #### [replace-tbd-entries](./replace-tbd-entries/)
+
 Finds and replaces TBD placeholders in code files with current version numbers.
 
 ```yaml
@@ -97,6 +106,7 @@ Finds and replaces TBD placeholders in code files with current version numbers.
 ```
 
 #### [sync-translations](./sync-translations/)
+
 Syncs translation files and manages GlotPress integration for WordPress plugins.
 
 ```yaml
@@ -220,6 +230,7 @@ jobs:
 If you're migrating from the previous reusable workflows, here are the key changes:
 
 #### Basic Setup
+
 ```yaml
 # Before
 uses: ./.github/workflows/reusable/basic-setup.yml
@@ -236,6 +247,7 @@ with:
 ```
 
 #### PHP Change Detection
+
 ```yaml
 # Before
 uses: ./.github/workflows/reusable/php-change-detector.yml
@@ -249,6 +261,7 @@ with:
 ```
 
 #### Slic Test Runner
+
 ```yaml
 # Before
 uses: ./.github/workflows/reusable/slic-test-runner.yml
@@ -265,6 +278,7 @@ with:
 ```
 
 #### Analyze Changes
+
 ```yaml
 # Before
 uses: ./.github/workflows/reusable/release-process/analyze-changes.yml
@@ -278,6 +292,7 @@ with:
 ```
 
 #### Process Changelog
+
 ```yaml
 # Before
 uses: ./.github/workflows/reusable/release-process/process-changelog.yml
@@ -291,6 +306,7 @@ with:
 ```
 
 #### Replace TBD Entries
+
 ```yaml
 # Before
 uses: ./.github/workflows/reusable/release-process/replace-tbd-entries.yml
@@ -300,6 +316,7 @@ uses: the-events-calendar/actions/.github/actions/replace-tbd-entries@main
 ```
 
 #### Sync Translations
+
 ```yaml
 # Before
 uses: ./.github/workflows/reusable/release-process/sync-translations.yml
@@ -325,6 +342,7 @@ with:
 ## Best Practices
 
 ### Action Versioning
+
 Always pin to a specific ref for production workflows:
 
 ```yaml
@@ -336,6 +354,7 @@ uses: the-events-calendar/actions/.github/actions/basic-setup@main
 ```
 
 ### Conditional Execution
+
 Use outputs for efficient conditional execution:
 
 ```yaml
@@ -349,6 +368,7 @@ Use outputs for efficient conditional execution:
 ```
 
 ### Error Handling
+
 Use `continue-on-error` for non-critical steps:
 
 ```yaml
@@ -358,6 +378,7 @@ Use `continue-on-error` for non-critical steps:
 ```
 
 ### Matrix Strategies
+
 Combine with matrix strategies for comprehensive testing:
 
 ```yaml
@@ -375,6 +396,7 @@ steps:
 ## Common Patterns
 
 ### Skip Patterns
+
 Use skip flags to bypass actions when not needed:
 
 ```yaml
@@ -390,6 +412,7 @@ Use skip flags to bypass actions when not needed:
 ```
 
 ### Dependency Chain
+
 Chain actions with dependencies:
 
 ```yaml
@@ -417,21 +440,27 @@ jobs:
 ### Common Issues
 
 #### Action Not Found
-```
+
+```text
 Error: Could not resolve to a valid repository
 ```
+
 **Solution**: Ensure you're using the correct repository reference and the action exists.
 
 #### Permission Denied
-```
+
+```text
 Error: Resource not accessible by integration
 ```
+
 **Solution**: Check repository permissions and ensure the action has necessary access.
 
 #### Invalid Input Type
-```
+
+```text
 Error: The 'setup-node' input should be a string, got boolean
 ```
+
 **Solution**: Pass boolean values as strings: `'true'` instead of `true`.
 
 ### Debugging
