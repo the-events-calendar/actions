@@ -37,11 +37,6 @@ jobs:
   process-changelog:
     name: "Process the changelog"
     runs-on: ubuntu-latest
-    env:
-      CHANGELOG_ACTION: ${{ inputs.action-type }}
-      RELEASE_VERSION: ${{ inputs.release-version }}
-      RELEASE_DATE: ${{ inputs.release-date }}
-      CHANGELOG_FULL_URL: ${{ inputs.changelog-full-url }}
     steps:
       - name: Setup environment
         uses: the-events-calendar/actions/.github/actions/basic-setup@main
@@ -50,23 +45,6 @@ jobs:
           setup-node: 'false'
           php-version: '7.4'
           fetch-depth: '0'
-
-      # Enable composer caching
-      - name: Get Composer Cache Directory
-        id: composer-cache-dir
-        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-
-      - name: Cache composer dependencies
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.composer-cache-dir.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-
-
-      # Install composer packages
-      - name: Install composer dependencies
-        run: composer install --no-progress --ignore-platform-reqs
 
       - name: Set Variables
         id: vars
@@ -78,63 +56,14 @@ jobs:
           git config --global user.email "actions@github.com"
           git config --global user.name "github-actions"
 
-      - name: Check for .puprc file and paths.versions
-        id: check-puprc
-        run: |
-          if [ ! -f ".puprc" ]; then
-            echo "Error: .puprc file not found" >> $GITHUB_STEP_SUMMARY
-            exit 1
-          fi
-          if ! jq -e '.paths.versions' .puprc > /dev/null; then
-            echo "Error: paths.versions not found in .puprc" >> $GITHUB_STEP_SUMMARY
-            exit 1
-          fi
-
-      - name: Figure out Version
-        id: figure_out_version
-        run: |
-          if [ "$RELEASE_VERSION" == "figure-it-out" ]; then
-            existing_version=""
-            while read -r version; do
-              echo "Processing version info: $version"
-              file=$(echo "$version" | jq -r '.file')
-              regex=$(echo "$version" | jq -r '.regex')
-
-              existing_version=$(grep -Po "$regex" "$file" | grep -Po '(\d+\.\d+\.\d+(\.\d+)?)')
-
-              if [ -n "$existing_version" ]; then
-                  echo "Release version: $existing_version"
-                  echo "RELEASE_VERSION=$existing_version" >> $GITHUB_OUTPUT
-                  break
-              fi
-            done < <(jq -c '.paths.versions[]' .puprc)
-          else
-            echo "Release version: $RELEASE_VERSION"
-            echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_OUTPUT
-          fi
-
-      - name: "Format the release date"
-        id: format_date
-        run: |
-          RELEASE_DATE=$( date "+%Y-%m-%d" -d "$RELEASE_DATE" ) # Release date formatted as YYYY-MM-DD
-          echo "Release date: $RELEASE_DATE"
-          echo "RELEASE_DATE=$RELEASE_DATE" >> $GITHUB_OUTPUT
-
-      - name: Create new branch
-        id: versions
-        run: |
-          changeBranch="task/process-changelog/${{ steps.format_date.outputs.RELEASE_DATE }}/${{ steps.figure_out_version.outputs.RELEASE_VERSION }}/${{ steps.vars.outputs.sha_short }}"
-          git checkout -b "$changeBranch"
-          git push origin "$changeBranch"
-
       - name: "Process changelog"
         id: process_changelog
         uses: the-events-calendar/actions/.github/actions/process-changelog@main
         with:
-          release-version: ${{ steps.figure_out_version.outputs.RELEASE_VERSION }}
-          release-date: ${{ steps.format_date.outputs.RELEASE_DATE }}
-          action-type: ${{ env.CHANGELOG_ACTION }}
-          changelog-full-url: ${{ env.CHANGELOG_FULL_URL }}
+          release-version: ${{ github.event.inputs.release-version }}
+          release-date: ${{ github.event.inputs.release-date }}
+          action-type: ${{ github.event.inputs.action-type }}
+          changelog-full-url: ${{ github.event.inputs.changelog-full-url }}
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
@@ -142,7 +71,7 @@ jobs:
         with:
           token: ${{ secrets.GHA_BOT_TOKEN_MANAGER }}
           base: ${{ github.ref }}
-          branch: "task/process-changelog/${{ steps.format_date.outputs.RELEASE_DATE }}/${{ steps.figure_out_version.outputs.RELEASE_VERSION }}/${{ steps.vars.outputs.sha_short }}"
+          branch: "task/process-changelog/${{ github.event.inputs.release-date }}/${{ github.event.inputs.release-version }}/${{ steps.vars.outputs.sha_short }}"
           title: "[BOT] Process changelog for '${{ github.head_ref || github.ref_name }}'"
           body: |
             This is an automated PR created by ${{ github.actor }}.
