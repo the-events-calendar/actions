@@ -13,6 +13,10 @@ inputs:
     description: 'Whether this is to generate or amend the changelog entries (generate or amend)'
     required: false
     default: "generate"
+  changelog-full-url:
+    description: 'URL to link to the full changelog when trimming is applied (default: https://evnt.is/1b5k)'
+    required: false
+    default: "https://evnt.is/1b5k"
 
 outputs:
   changelog:
@@ -49,4 +53,5 @@ runs:
         CURRENT_VERSION: ${{ steps.verify_action_type.outputs.CURRENT_VERSION || 'dont-care' }}
         RELEASE_VERSION: ${{ inputs.release-version }}
         RELEASE_DATE: ${{ inputs.release-date }}
-      run: ./bin/process-changelog.sh $RELEASE_VERSION $CURRENT_VERSION $ACTION_TYPE $RELEASE_DATE
+        CHANGELOG_FULL_URL: ${{ inputs.changelog-full-url }}
+      run: ./bin/process-changelog.sh $RELEASE_VERSION $CURRENT_VERSION $ACTION_TYPE $RELEASE_DATE $CHANGELOG_FULL_URL
