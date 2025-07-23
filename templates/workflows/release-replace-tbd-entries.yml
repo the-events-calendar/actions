@@ -88,4 +88,4 @@ jobs:
             fi
           else
             echo "ℹ️ No TBD entries found in the repository." >> $GITHUB_STEP_SUMMARY
-          fi 
+          fi
