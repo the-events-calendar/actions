@@ -34,6 +34,8 @@ group:
         dest: bin/process-changelog.sh
       - source: templates/bin/ModifiedSemverVersioning.php
         dest: bin/ModifiedSemverVersioning.php
+      - source: templates/bin/trim-readme-changelog.sh
+        dest: bin/trim-readme-changelog.sh
 
       # GitHub Workflows
       - source: templates/workflows/release-process-changelog.yml
