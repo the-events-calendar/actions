@@ -17,7 +17,7 @@ outputs:
     value: ${{ steps.replace-tbd.outputs.changes_made }}
   current-version:
     description: 'The current version found'
-    value: ${{ steps.check-version.outputs.current_version }}
+    value: ${{ steps.detect-version.outputs.version }}
 
 runs:
   using: composite
@@ -49,43 +49,15 @@ runs:
         git config --global user.email "actions@github.com"
         git config --global user.name "github-actions"
 
-    - name: Check for version files
-      id: check-version
-      shell: bash
-      run: |
-        # Set default version in case we can't find one
-        CURRENT_VERSION="0.0.0"
-
-        # Look for package.json
-        if [ -f "package.json" ]; then
-          PACKAGE_VERSION=$(grep -Po '"version":\s*"\K[^"]+' package.json)
-          if [ ! -z "$PACKAGE_VERSION" ]; then
-            CURRENT_VERSION="$PACKAGE_VERSION"
-            echo "Found version in package.json: $CURRENT_VERSION" >> $GITHUB_STEP_SUMMARY
-          fi
-        fi
-
-        # Look for plugin.php or main PHP file
-        for file in $(find . -name "*.php" -type f -not -path "*/vendor/*" -not -path "*/node_modules/*"); do
-          if grep -q "Version:" "$file"; then
-            PHP_VERSION=$(grep -Po 'Version:\s*\K[0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?' "$file")
-            if [ ! -z "$PHP_VERSION" ]; then
-              CURRENT_VERSION="$PHP_VERSION"
-              echo "Found version in $file: $CURRENT_VERSION" >> $GITHUB_STEP_SUMMARY
-              break
-            fi
-          fi
-        done
-
-        echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-        echo "## Current Version" >> $GITHUB_STEP_SUMMARY
-        echo "* Version: \`$CURRENT_VERSION\`" >> $GITHUB_STEP_SUMMARY
+    - name: Detect current version
+      id: detect-version
+      uses: the-events-calendar/actions/.github/actions/detect-version@main
 
     - name: Find and replace TBD entries
       id: replace-tbd
       shell: bash
       run: |
-        CURRENT_VERSION="${{ steps.check-version.outputs.current_version }}"
+        CURRENT_VERSION="${{ steps.detect-version.outputs.version }}"
         FOUND_TBD=false
         CHANGES_MADE=false
 
