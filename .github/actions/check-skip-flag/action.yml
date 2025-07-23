@@ -1,0 +1,46 @@
+name: Check Skip Flag
+description: 'Checks if a skip flag is present in the PR body to determine if an action should be skipped'
+
+inputs:
+  skip-flag:
+    description: 'Skip flag to check for (e.g., skip-phpcs, skip-tests)'
+    required: true
+  pr-body:
+    description: 'PR body to check (defaults to current PR body)'
+    required: false
+    default: ${{ github.event.pull_request.body }}
+
+outputs:
+  should-skip:
+    description: 'Whether the action should be skipped (true/false)'
+    value: ${{ steps.check.outputs.should_skip }}
+  skip-reason:
+    description: 'Reason for skipping (if applicable)'
+    value: ${{ steps.check.outputs.skip_reason }}
+
+runs:
+  using: composite
+  steps:
+    - name: Check skip condition
+      id: check
+      shell: bash
+      run: |
+        SKIP_FLAG="${{ inputs.skip-flag }}"
+        PR_BODY="${{ inputs.pr-body }}"
+
+        if [[ -n "$SKIP_FLAG" ]] && [[ "$PR_BODY" == *"[skip-$SKIP_FLAG]"* ]]; then
+          echo "should_skip=true" >> $GITHUB_OUTPUT
+          echo "skip_reason=Found [skip-$SKIP_FLAG] in PR body" >> $GITHUB_OUTPUT
+
+          echo "## ⏭️ Action Skipped" >> $GITHUB_STEP_SUMMARY
+          echo "**Reason**: Found \`[skip-$SKIP_FLAG]\` in PR body" >> $GITHUB_STEP_SUMMARY
+          echo "**Flag**: \`$SKIP_FLAG\`" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "should_skip=false" >> $GITHUB_OUTPUT
+          echo "skip_reason=" >> $GITHUB_OUTPUT
+
+          if [[ -n "$SKIP_FLAG" ]]; then
+            echo "## ✅ Action Will Run" >> $GITHUB_STEP_SUMMARY
+            echo "No \`[skip-$SKIP_FLAG]\` flag found in PR body" >> $GITHUB_STEP_SUMMARY
+          fi
+        fi
