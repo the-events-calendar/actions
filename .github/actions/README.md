@@ -17,6 +17,33 @@ Sets up a basic environment for CI/CD workflows with PHP and Node.js configurati
     php-version: '8.1'
 ```
 
+### 🔧 Utility Actions
+
+#### [detect-version](./detect-version/)
+Detects the current version from package.json, PHP files, or .puprc configuration.
+
+```yaml
+- uses: the-events-calendar/actions/.github/actions/detect-version@main
+  with:
+    fallback-version: '1.0.0'
+```
+
+#### [check-skip-flag](./check-skip-flag/)
+Checks for skip flags in PR descriptions to determine if actions should be skipped.
+
+```yaml
+- uses: the-events-calendar/actions/.github/actions/check-skip-flag@main
+  with:
+    skip-flag: phpcs
+```
+
+#### [detect-branch-type](./detect-branch-type/)
+Analyzes Git branch names to determine their type and characteristics for conditional workflow logic.
+
+```yaml
+- uses: the-events-calendar/actions/.github/actions/detect-branch-type@main
+```
+
 ### 🔍 Code Analysis
 
 #### [php-change-detector](./php-change-detector/)
