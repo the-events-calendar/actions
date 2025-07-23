@@ -69,11 +69,13 @@ The action includes sophisticated trimming capabilities for `readme.txt` files:
 ### 3. File Processing
 
 #### changelog.md
+
 - Generated/updated using the Jetpack Changelogger tool
 - Contains complete changelog history
 - Never trimmed or modified by word count limits
 
 #### readme.txt
+
 - Changelog section updated with new entries
 - New entries are prepended (newest at top)
 - Automatically trimmed if exceeds 5,000 words (configurable)
@@ -137,14 +139,14 @@ The action includes sophisticated trimming capabilities for `readme.txt` files:
 
 Ensure your project has the following structure:
 
-```
+```text
 project-root/
 ├── changelog/              # Individual changelog files
 │   ├── .gitkeep
 │   └── feature-xyz.md
 ├── bin/                    # Processing scripts
 │   ├── process-changelog.sh
-│   └── trim-readme-changelog.sh
+│   └── readme-changelog-trimmer.sh
 ├── package.json           # Version information
 ├── readme.txt            # WordPress plugin readme
 ├── changelog.md          # Generated changelog
@@ -168,6 +170,7 @@ Each plugin can configure its changelog URL in the `package.json` file. Add a `t
 ```
 
 **Configuration Priority:**
+
 1. **`package.json`** - Plugin-specific configuration (recommended)
 2. **Action parameter** - Workflow-level override
 3. **Default value** - `https://evnt.is/1b5k` fallback
@@ -236,7 +239,8 @@ The action includes comprehensive error handling for:
 ### Example Trimming Result
 
 **Before Trimming** (>5,000 words):
-```
+
+```text
 = [5.14.0] 2024-03-15 =
 ...content...
 
@@ -248,7 +252,8 @@ The action includes comprehensive error handling for:
 ```
 
 **After Trimming** (<5,000 words):
-```
+
+```text
 = [5.14.0] 2024-03-15 =
 ...content...
 
