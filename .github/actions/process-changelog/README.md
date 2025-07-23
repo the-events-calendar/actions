@@ -12,7 +12,7 @@ This action consolidates individual changelog entries into formatted changelog f
 - **README Integration**: Updates `readme.txt` with formatted changelog entries
 - **Smart Trimming**: Automatically trims `readme.txt` changelog section when it exceeds word limits
 - **Section-Based Removal**: Removes complete release entries (not partial content) when trimming
-- **Configurable Links**: Adds customizable "See changelog for all versions" links when trimming occurs
+- **Configurable Links**: Adds customizable "See changelog for all versions" links
 - **Multiple Action Types**: Supports generating new changelogs, amending existing ones, or updating versions
 - **Cross-Platform**: Works on Linux and macOS environments
 
@@ -20,7 +20,7 @@ This action consolidates individual changelog entries into formatted changelog f
 
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
-| `release-version` | The release version for changelog generation (e.g., `4.5.0`) | ✅ | - |
+| `release-version` | The release version for changelog generation (e.g., `4.5.0`) | ✅ | `figure-it-out` |
 | `release-date` | Release date in YYYY-MM-DD format | ❌ | `unreleased` |
 | `action-type` | Type of changelog operation (`generate`, `amend`, `amend-version`) | ❌ | `generate` |
 | `changelog-full-url` | URL for "See changelog for all versions" link (can be overridden by `package.json`) | ❌ | `https://evnt.is/1b5k` |
@@ -51,9 +51,9 @@ graph TD
     F --> G{Exceeds Limit?}
     G -->|Yes| H[Trim Entries]
     G -->|No| I[Keep All Entries]
-    H --> J[Add Full Changelog Link]
-    I --> K[Final readme.txt]
-    J --> K
+    H --> J[Always Include Full Changelog Link]
+    I --> J
+    J --> K[Final readme.txt]
 ```
 
 ### 2. README.txt Trimming Logic
@@ -64,7 +64,7 @@ The action includes sophisticated trimming capabilities for `readme.txt` files:
 - **Section-Based Trimming**: Removes complete release entries, not partial content
 - **Oldest-First Removal**: Trims from bottom (oldest entries) to preserve newest content
 - **Boundary Detection**: Uses precise line number analysis to extract complete entries
-- **Link Addition**: Adds configurable "See changelog for all versions" link when trimming occurs
+- **Link Addition**: Appends configurable "See changelog for all versions" link
 
 ### 3. File Processing
 
@@ -207,8 +207,8 @@ Individual changelog files should follow this format:
 ```markdown
 Significance: patch
 Type: fix
-Entry: Fixed issue with event display on mobile devices
-Comment: Resolves mobile responsiveness problems
+
+Fixed issue with event display on mobile devices
 ```
 
 ## Error Handling
@@ -234,7 +234,6 @@ The action includes comprehensive error handling for:
 1. **Preserve Newest**: Always keeps the most recent changelog entries
 2. **Complete Entries**: Never creates partial/broken release entries
 3. **Boundary Respect**: Uses release headers (`= [VERSION] DATE =`) as boundaries
-4. **Link Addition**: Automatically adds "See changelog for all versions" link when trimming occurs
 
 ### Example Trimming Result
 
