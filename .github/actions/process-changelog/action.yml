@@ -1,57 +1,110 @@
-name: "Process the changelog"
-description: "Generate or amend the changelog entries"
+name: Process Changelog
+description: 'Processes changelogs for plugin releases with version detection and formatting'
 
 inputs:
   release-version:
-    description: "The release version for which the action should generate the changelog (e.g. 4.5.0)"
+    description: 'The release version for which the action should process the changelog (e.g. 4.5.0) (default: will try to figure it out)'
     required: true
+    default: 'figure-it-out'
   release-date:
-    description: "The release date (format: YYYY-MM-DD) for which the action should generate the changelog (default: unreleased)"
+    description: 'The release date in human-readable format (default: "today")'
     required: false
-    default: "unreleased"
+    default: 'today'
   action-type:
-    description: 'Whether this is to generate or amend the changelog entries (generate or amend)'
+    description: 'Whether this is to amend or generate the changelog entries (default: "generate")'
+    required: true
+    default: 'generate'
+  target-branch:
+    description: 'Target branch for the workflow'
     required: false
-    default: "generate"
+    default: 'main'
   changelog-full-url:
     description: 'URL to link to the full changelog when trimming is applied (default: https://evnt.is/1b5k)'
     required: false
     default: "https://evnt.is/1b5k"
+  additional-inputs:
+    description: 'Additional inputs to pass through (JSON string)'
+    required: false
+    default: '{}'
 
 outputs:
-  changelog:
-    description: "The escaped changelog content"
-    value: ${{ steps.process_changelog.outputs.CHANGELOG }}
+  changelog-content:
+    description: 'The new changelog entry that was generated'
+    value: ${{ steps.capture-changelog.outputs.changelog-content }}
+  changes-made:
+    description: 'Whether any changes were made'
+    value: ${{ steps.process_changelog.outputs.changes-made || 'true' }}
 
 runs:
   using: composite
   steps:
-    - name: "Verify the action type"
-      id: verify_action_type
-      if: ${{ inputs.action-type == 'generate' }}
-      shell: bash
-      env:
-        RELEASE_VERSION: ${{ inputs.release-version }}
-        RELEASE_DATE: ${{ inputs.release-date }}
-        ACTION_TYPE: ${{ inputs.action-type }}
-      run: |
-        FINAL_RELEASE_VERSION=$(echo "$RELEASE_VERSION" | grep -Po '\d+\.\d+\.\d+(\.\d+)?') # Keep only x.y.z(.k) from x.y.z(.k)(-test-n)
-        CURRENT_RELEASE_VERSION=$(jq '.version' package.json -r)
+    - name: Setup environment
+      uses: the-events-calendar/actions/.github/actions/basic-setup@main
+      with:
+        setup-php: 'true'
+        setup-node: 'false'
+        php-version: '7.4'
+        fetch-depth: '0'
 
-        # If the changelog directory is empty (except .gitkeep) and the final release version is already defined in package.json, we need to switch to amend
-        # This use case is mainly for the last test package created from the release branch, to avoid an empty changelog
-        if [ "$(ls -A changelog | wc -l)" -eq 1 ] && [[ "$FINAL_RELEASE_VERSION" == "$CURRENT_RELEASE_VERSION" ]]; then
-          echo "ACTION_TYPE=amend-version" >> $GITHUB_OUTPUT
-          echo "CURRENT_VERSION=$CURRENT_RELEASE_VERSION" >> $GITHUB_OUTPUT
+    - name: Set up Composer
+      shell: bash
+      run: composer install --no-progress --ignore-platform-reqs
+
+    - name: Set Variables
+      id: vars
+      shell: bash
+      run: |
+        echo "sha_short=$(git rev-parse --short ${{ github.sha }})" >> $GITHUB_OUTPUT
+
+    - name: Set up Git configuration
+      shell: bash
+      run: |
+        git config --global user.email "actions@github.com"
+        git config --global user.name "github-actions"
+
+    - name: Check for .puprc file and paths.versions
+      id: check-puprc
+      shell: bash
+      run: |
+        if [ ! -f ".puprc" ]; then
+          echo "Error: .puprc file not found" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        if ! jq -e '.paths.versions' .puprc > /dev/null; then
+          echo "Error: paths.versions not found in .puprc" >> $GITHUB_STEP_SUMMARY
+          exit 1
         fi
 
-    - name: "Process changelog for changelog.md"
-      id: process_changelog
+    - name: Figure out Version
+      id: figure_out_version
       shell: bash
       env:
-        ACTION_TYPE: ${{ steps.verify_action_type.outputs.ACTION_TYPE || inputs.action-type }}
-        CURRENT_VERSION: ${{ steps.verify_action_type.outputs.CURRENT_VERSION || 'dont-care' }}
         RELEASE_VERSION: ${{ inputs.release-version }}
+      run: |
+        if [ "$RELEASE_VERSION" == "figure-it-out" ]; then
+          existing_version=""
+          while read -r version; do
+            echo "Processing version info: $version"
+            file=$(echo "$version" | jq -r '.file')
+            regex=$(echo "$version" | jq -r '.regex')
+
+            existing_version=$(grep -Po "$regex" "$file" | grep -Po '(\d+\.\d+\.\d+(\.\d+)?)')
+
+            if [ -n "$existing_version" ]; then
+                echo "Release version: $existing_version"
+                echo "RELEASE_VERSION=$existing_version" >> $GITHUB_OUTPUT
+                break
+            fi
+          done < <(jq -c '.paths.versions[]' .puprc)
+        else
+          echo "Release version: $RELEASE_VERSION"
+          echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Format the release date
+      id: format_date
+      shell: bash
+      env:
         RELEASE_DATE: ${{ inputs.release-date }}
         CHANGELOG_FULL_URL: ${{ inputs.changelog-full-url }}
       run: ./bin/process-changelog.sh $RELEASE_VERSION $CURRENT_VERSION $ACTION_TYPE $RELEASE_DATE $CHANGELOG_FULL_URL
