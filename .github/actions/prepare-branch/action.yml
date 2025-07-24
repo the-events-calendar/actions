@@ -47,11 +47,11 @@ runs:
         echo "## Branch Preparation" >> $GITHUB_STEP_SUMMARY
         echo "- **New Branch**: \`${{ inputs.new-branch }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- **Version Bump**: \`${{ inputs.version-bump-type }}\`" >> $GITHUB_STEP_SUMMARY
-        
+
         # Extract and validate version bump type
         version_bump_type="${{ inputs.version-bump-type }}"
         version_bump_type="${version_bump_type%% *}"  # Remove description if present
-        
+
         case "$version_bump_type" in
           major|feature|maintenance|hotfix)
             echo "✅ Valid version bump type: $version_bump_type" >> $GITHUB_STEP_SUMMARY
@@ -62,7 +62,7 @@ runs:
             exit 1
             ;;
         esac
-        
+
         echo "version_bump_type=$version_bump_type" >> $GITHUB_OUTPUT
 
     - name: Detect current version
@@ -74,9 +74,9 @@ runs:
       shell: bash
       run: |
         new_branch="${{ inputs.new-branch }}"
-        
+
         echo "## Release Branch Setup" >> $GITHUB_STEP_SUMMARY
-        
+
         if git show-ref --quiet "refs/heads/$new_branch"; then
           echo "⚠️ Branch \`$new_branch\` already exists, using existing branch" >> $GITHUB_STEP_SUMMARY
           git fetch origin "$new_branch"
@@ -95,13 +95,13 @@ runs:
       run: |
         sha_short=$(git rev-parse --short ${{ github.sha }})
         change_branch="task/version-bump-${{ inputs.new-branch }}-$sha_short"
-        
+
         echo "## Version Bump Branch" >> $GITHUB_STEP_SUMMARY
         echo "- **Branch**: \`$change_branch\`" >> $GITHUB_STEP_SUMMARY
-        
+
         git checkout -b "$change_branch"
         git push origin "$change_branch"
-        
+
         echo "change_branch=$change_branch" >> $GITHUB_OUTPUT
 
     - name: Apply version bump
@@ -110,51 +110,51 @@ runs:
       run: |
         version_bump_type="${{ steps.validate.outputs.version_bump_type }}"
         current_version="${{ steps.detect-version.outputs.version }}"
-        
+
         echo "## Version Bump Process" >> $GITHUB_STEP_SUMMARY
         echo "- **Current Version**: \`$current_version\`" >> $GITHUB_STEP_SUMMARY
         echo "- **Bump Type**: \`$version_bump_type\`" >> $GITHUB_STEP_SUMMARY
-        
+
         # Check if .puprc exists and has version configuration
         if [ ! -f ".puprc" ]; then
           echo "❌ .puprc file not found" >> $GITHUB_STEP_SUMMARY
           exit 1
         fi
-        
+
         if ! jq -e '.paths.versions' .puprc > /dev/null; then
           echo "❌ paths.versions not found in .puprc" >> $GITHUB_STEP_SUMMARY
           exit 1
         fi
-        
+
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### File Updates" >> $GITHUB_STEP_SUMMARY
-        
+
         # Process each version file
         jq -c '.paths.versions[]' .puprc | while read -r version_config; do
           file=$(echo "$version_config" | jq -r '.file')
           regex=$(echo "$version_config" | jq -r '.regex')
-          
+
           echo "#### \`$file\`" >> $GITHUB_STEP_SUMMARY
-          
+
           if [ -f "$file" ]; then
             existing_version=$(grep -Po "$regex" "$file" | grep -Po '(\d+\.\d+\.\d+(\.\d+)?)')
-            
+
             if [ -z "$existing_version" ]; then
               echo "❌ No version found using regex \`$regex\`" >> $GITHUB_STEP_SUMMARY
               exit 1
             fi
-            
+
             echo "- **Found**: \`$existing_version\`" >> $GITHUB_STEP_SUMMARY
-            
+
             # Skip package.json for hotfix bumps
             if [ "$version_bump_type" = "hotfix" ] && [ "$file" = "package.json" ]; then
               echo "- **Skipped**: Hotfix mode skips package.json" >> $GITHUB_STEP_SUMMARY
               continue
             fi
-            
+
             # Parse version components
             IFS='.' read -r -a version_parts <<< "$existing_version"
-            
+
             # Apply version bump logic
             case "$version_bump_type" in
               major)
@@ -180,19 +180,19 @@ runs:
                 fi
                 ;;
             esac
-            
+
             # Construct new version
             new_version="${version_parts[0]}.${version_parts[1]}.${version_parts[2]}"
             if [ -n "${version_parts[3]}" ]; then
               new_version="$new_version.${version_parts[3]}"
             fi
-            
+
             echo "- **Updated**: \`$new_version\`" >> $GITHUB_STEP_SUMMARY
-            
+
             # Apply the version update using PHP for reliable regex replacement
             php_regex=$(echo "$regex" | sed "s/'/\\\\'/g")
             php -r "file_put_contents('$file', preg_replace('/$php_regex/', '\${1}$new_version', file_get_contents('$file')));"
-            
+
             # Store the new version for output
             echo "new_version=$new_version" >> $GITHUB_OUTPUT
           else
@@ -238,7 +238,7 @@ runs:
       run: |
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "## Results" >> $GITHUB_STEP_SUMMARY
-        
+
         if [ "${{ steps.create-pr.outputs.pull-request-number }}" ]; then
           echo "✅ **Pull Request Created**" >> $GITHUB_STEP_SUMMARY
           echo "- **Number**: [${{ steps.create-pr.outputs.pull-request-number }}](${{ steps.create-pr.outputs.pull-request-url }})" >> $GITHUB_STEP_SUMMARY
@@ -246,4 +246,4 @@ runs:
           echo "- **New Version**: \`${{ steps.bump-version.outputs.new_version }}\`" >> $GITHUB_STEP_SUMMARY
         else
           echo "❌ Failed to create pull request" >> $GITHUB_STEP_SUMMARY
-        fi 
+        fi

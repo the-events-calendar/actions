@@ -58,7 +58,7 @@ on:
         type: choice
         options:
           - major
-          - feature  
+          - feature
           - maintenance
           - hotfix
 
@@ -131,7 +131,7 @@ Based on the bump type and current version:
 ```bash
 # Current version: 1.2.3
 major    → 2.0.0     # Breaking changes
-feature  → 1.3.0     # New features  
+feature  → 1.3.0     # New features
 maintenance → 1.2.4  # Bug fixes
 hotfix   → 1.2.3.1   # Critical patches
 ```
@@ -163,7 +163,7 @@ The action requires a `.puprc` file with version configuration:
         "regex": "\"version\":\\s*\"([^\"]+)\""
       },
       {
-        "file": "plugin.php", 
+        "file": "plugin.php",
         "regex": "Version:\\s*([\\d\\.]+)"
       },
       {
@@ -228,7 +228,7 @@ The action provides detailed step summaries:
 - **New Branch**: `release/T25.feature`
 - **Version Bump**: `feature`
 
-## Release Branch Setup  
+## Release Branch Setup
 ✅ Creating new branch `release/T25.feature`
 
 ## Version Bump Process
@@ -264,13 +264,13 @@ jobs:
     steps:
       - name: Prepare branch
         uses: the-events-calendar/actions/.github/actions/prepare-branch@main
-        
+
   validate:
     needs: prepare
     steps:
       - name: Run tests on new branch
         run: npm test
-        
+
   deploy:
     needs: [prepare, validate]
     steps:
@@ -304,7 +304,7 @@ This action works seamlessly with other release actions:
   with:
     release-version: ${{ steps.prepare.outputs.new-version }}
 
-- name: Replace TBD entries  
+- name: Replace TBD entries
   uses: the-events-calendar/actions/.github/actions/replace-tbd-entries@main
 ```
 
@@ -324,4 +324,4 @@ This action works seamlessly with other release actions:
 ### Branch Creation Issues
 - Check for naming conflicts
 - Verify branch doesn't already exist remotely
-- Ensure proper Git configuration 
+- Ensure proper Git configuration

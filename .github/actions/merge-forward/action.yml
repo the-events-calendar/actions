@@ -51,7 +51,7 @@ runs:
           echo "⚠️ Forward branch does not exist, creating it" >> $GITHUB_STEP_SUMMARY
           echo "should_skip=true" >> $GITHUB_OUTPUT
           echo "skip_reason=Forward branch ${{ inputs.forward-branch }} does not exist" >> $GITHUB_OUTPUT
-          
+
           # Create the branch so subsequent workflows can use it
           git checkout "${{ github.ref_name }}"
           git checkout -b "${{ inputs.forward-branch }}"
@@ -64,13 +64,13 @@ runs:
       shell: bash
       run: |
         HEAD_BRANCH="task/merge-forward-${{ github.ref_name }}-to-${{ inputs.forward-branch }}"
-        
+
         echo "## Creating Merge Branch" >> $GITHUB_STEP_SUMMARY
         echo "- **Head Branch**: \`$HEAD_BRANCH\`" >> $GITHUB_STEP_SUMMARY
-        
+
         git checkout "${{ inputs.forward-branch }}"
         git checkout -b "$HEAD_BRANCH"
-        
+
         # Attempt the merge
         if git merge --no-ff "${{ github.ref_name }}"; then
           echo "✅ Merge completed successfully" >> $GITHUB_STEP_SUMMARY
@@ -91,9 +91,9 @@ runs:
         GITHUB_TOKEN: ${{ inputs.gh-bot-token }}
       run: |
         HEAD_BRANCH="${{ steps.create-merge.outputs.head_branch }}"
-        
+
         echo "## Creating Pull Request" >> $GITHUB_STEP_SUMMARY
-        
+
         # Create the PR using GitHub CLI
         PR_URL=$(gh pr create \
           --base "${{ inputs.forward-branch }}" \
@@ -115,7 +115,7 @@ runs:
 
         echo "✅ Pull request created successfully" >> $GITHUB_STEP_SUMMARY
         echo "- **URL**: [$PR_URL]($PR_URL)" >> $GITHUB_STEP_SUMMARY
-        
+
         echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
         echo "created=true" >> $GITHUB_OUTPUT
 
@@ -125,4 +125,4 @@ runs:
       run: |
         echo "## Pull Request Skipped" >> $GITHUB_STEP_SUMMARY
         echo "ℹ️ ${{ steps.check-branch.outputs.skip_reason }}" >> $GITHUB_STEP_SUMMARY
-        echo "created=false" >> $GITHUB_OUTPUT 
+        echo "created=false" >> $GITHUB_OUTPUT

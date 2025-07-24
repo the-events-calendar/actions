@@ -126,7 +126,7 @@ When `update-min-version` is `yes`, the minimum is calculated as 2 minor version
 ```bash
 # Examples:
 Tested: 6.8.1 → Minimum: 6.6
-Tested: 6.2.0 → Minimum: 6.0  
+Tested: 6.2.0 → Minimum: 6.0
 Tested: 6.1.0 → Minimum: 5.11 (if 5.11 exists)
 Tested: 6.0.0 → Minimum: 5.10 (if 5.10 exists)
 
@@ -157,7 +157,7 @@ Updates WP-CLI commands in GitHub Actions workflows:
 # Before:
 - run: wp core update --version=6.4
 
-# After:  
+# After:
 - run: wp core update --version=6.6
 ```
 
@@ -261,8 +261,8 @@ on:
     # Test with minimum version
     wp core update --version=${{ steps.update.outputs.min-version }}
     npm run test
-    
-    # Test with tested version  
+
+    # Test with tested version
     wp core update --version=${{ steps.update.outputs.tested-version }}
     npm run test
 ```
@@ -334,4 +334,4 @@ jobs:
 
 - name: Update changelog
   uses: the-events-calendar/actions/.github/actions/process-changelog@main
-``` 
+```

@@ -197,7 +197,7 @@ jobs:
     steps:
       - name: Prepare release branch
         uses: the-events-calendar/actions/.github/actions/prepare-branch@main
-        
+
   merge-forward:
     needs: prepare-release
     steps:
@@ -211,7 +211,7 @@ jobs:
 
 The action automatically includes skip flags in created PRs:
 - `[skip-changelog]` - Skip changelog validation
-- `[skip-lint]` - Skip linting checks  
+- `[skip-lint]` - Skip linting checks
 - `[skip-phpcs]` - Skip code style checks
 
 These flags prevent unnecessary CI runs for automated merge commits.
@@ -231,4 +231,4 @@ These flags prevent unnecessary CI runs for automated merge commits.
 ### Permission Errors
 - Verify token has required permissions
 - Check repository settings
-- Ensure workflow has necessary access 
+- Ensure workflow has necessary access

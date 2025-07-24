@@ -50,42 +50,42 @@ runs:
       run: |
         TESTED_VERSION="${{ inputs.tested-up-to }}"
         UPDATE_MIN="${{ inputs.update-min-version }}"
-        
+
         echo "## WordPress Version Updates" >> $GITHUB_STEP_SUMMARY
         echo "- **Tested Up To**: \`$TESTED_VERSION\`" >> $GITHUB_STEP_SUMMARY
-        
+
         # Validate tested version format
         if ! [[ "$TESTED_VERSION" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
           echo "❌ Invalid version format: $TESTED_VERSION" >> $GITHUB_STEP_SUMMARY
           echo "Expected format: X.Y or X.Y.Z (e.g., 6.8 or 6.8.1)"
           exit 1
         fi
-        
+
         # Calculate minimum version (2 minor versions behind)
         IFS='.' read -r -a tested_parts <<< "$TESTED_VERSION"
         min_major=$((tested_parts[0]))
         min_minor=$((tested_parts[1] - 2))
-        
+
         # Ensure minimum version doesn't go below 5.0
         if [ "$min_minor" -lt 0 ]; then
           min_major=$((min_major - 1))
           min_minor=$((12 + min_minor))  # Assuming 12 releases per year
         fi
-        
+
         if [ "$min_major" -lt 5 ]; then
           min_major=5
           min_minor=0
         fi
-        
+
         MIN_VERSION="$min_major.$min_minor"
-        
+
         echo "- **Update Minimum**: \`$UPDATE_MIN\`" >> $GITHUB_STEP_SUMMARY
         if [ "$UPDATE_MIN" = "yes" ]; then
           echo "- **New Minimum Required**: \`$MIN_VERSION\`" >> $GITHUB_STEP_SUMMARY
         else
           echo "- **Minimum Required**: Unchanged" >> $GITHUB_STEP_SUMMARY
         fi
-        
+
         echo "tested_version=$TESTED_VERSION" >> $GITHUB_OUTPUT
         echo "min_version=$MIN_VERSION" >> $GITHUB_OUTPUT
         echo "update_min=$UPDATE_MIN" >> $GITHUB_OUTPUT
@@ -97,13 +97,13 @@ runs:
         timestamp=$(date +%Y%m%d-%H%M%S)
         sha_short=$(git rev-parse --short ${{ github.sha }})
         BRANCH_NAME="task/update-wp-version-$timestamp-$sha_short"
-        
+
         echo "## Branch Creation" >> $GITHUB_STEP_SUMMARY
         echo "- **Branch**: \`$BRANCH_NAME\`" >> $GITHUB_STEP_SUMMARY
-        
+
         git checkout -b "$BRANCH_NAME"
         git push --set-upstream origin "$BRANCH_NAME"
-        
+
         echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
 
     - name: Update WordPress version requirements
@@ -113,21 +113,21 @@ runs:
         TESTED_VERSION="${{ steps.calculate-versions.outputs.tested_version }}"
         MIN_VERSION="${{ steps.calculate-versions.outputs.min_version }}"
         UPDATE_MIN="${{ steps.calculate-versions.outputs.update_min }}"
-        
+
         echo "## File Updates" >> $GITHUB_STEP_SUMMARY
         updated_files=()
-        
+
         # Update readme.txt
         if [ -f "readme.txt" ]; then
           echo "### \`readme.txt\`" >> $GITHUB_STEP_SUMMARY
-          
+
           # Update tested up to version
           if sed -i "s/Tested up to: [0-9.]*/Tested up to: $TESTED_VERSION/" readme.txt; then
             echo "✅ Updated 'Tested up to' version" >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠️ Could not update 'Tested up to' version" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           # Update minimum version if requested
           if [ "$UPDATE_MIN" = "yes" ]; then
             if sed -i "s/Requires at least: [0-9.]*/Requires at least: $MIN_VERSION/" readme.txt; then
@@ -136,22 +136,22 @@ runs:
               echo "⚠️ Could not update 'Requires at least' version" >> $GITHUB_STEP_SUMMARY
             fi
           fi
-          
+
           updated_files+=("readme.txt")
         else
           echo "⚠️ readme.txt not found" >> $GITHUB_STEP_SUMMARY
         fi
-        
+
         # Update main plugin file (if minimum version is being updated)
         if [ "$UPDATE_MIN" = "yes" ] && [ -f ".puprc" ]; then
           echo "### Plugin PHP File" >> $GITHUB_STEP_SUMMARY
-          
+
           # Find main plugin PHP file from .puprc
           PLUGIN_FILE=$(jq -r '.paths.versions[]? | select(.file | test("^[^/]+\\.php$")) | .file' .puprc 2>/dev/null | head -1)
-          
+
           if [ -n "$PLUGIN_FILE" ] && [ -f "$PLUGIN_FILE" ]; then
             echo "- **File**: \`$PLUGIN_FILE\`" >> $GITHUB_STEP_SUMMARY
-            
+
             if sed -i "s/Requires at least: [0-9.]*/Requires at least: $MIN_VERSION/" "$PLUGIN_FILE"; then
               echo "✅ Updated 'Requires at least' version" >> $GITHUB_STEP_SUMMARY
               updated_files+=("$PLUGIN_FILE")
@@ -162,16 +162,16 @@ runs:
             echo "⚠️ Main plugin PHP file not found or .puprc not configured" >> $GITHUB_STEP_SUMMARY
           fi
         fi
-        
+
         # Update workflow files (if minimum version is being updated)
         if [ "$UPDATE_MIN" = "yes" ] && [ -d ".github/workflows" ]; then
           echo "### Workflow Files" >> $GITHUB_STEP_SUMMARY
-          
+
           workflow_updated=false
           for wf in .github/workflows/*.yml; do
             [ ! -f "$wf" ] && continue
             [ "$(basename "$wf")" = "update-wp-version.yml" ] && continue
-            
+
             # Look for wp core update commands and update the version
             if grep -q "wp core update.*--version=" "$wf"; then
               if sed -i "s/wp core update\([^-]*\)--version=[0-9.]*/wp core update\1--version=$MIN_VERSION/" "$wf"; then
@@ -181,16 +181,16 @@ runs:
               fi
             fi
           done
-          
+
           if [ "$workflow_updated" = false ]; then
             echo "- ℹ️ No workflow files needed updating" >> $GITHUB_STEP_SUMMARY
           fi
         fi
-        
+
         # Output updated files as JSON array
         printf -v updated_files_json '%s\n' "${updated_files[@]}" | jq -R . | jq -s .
         echo "updated_files=$updated_files_json" >> $GITHUB_OUTPUT
-        
+
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**Total files updated**: ${#updated_files[@]}" >> $GITHUB_STEP_SUMMARY
 
@@ -206,7 +206,7 @@ runs:
 ${{ steps.calculate-versions.outputs.update_min == 'yes' && format('- Set minimum required version to {0}', steps.calculate-versions.outputs.min_version) || '- Kept minimum required version unchanged' }}
 
 Generated by: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          
+
           git push origin "${{ steps.create-branch.outputs.branch_name }}"
           echo "✅ Changes committed and pushed" >> $GITHUB_STEP_SUMMARY
         else
@@ -234,7 +234,7 @@ Generated by: https://github.com/${{ github.repository }}/actions/runs/${{ githu
           **Skip Flags**: [skip-changelog] [skip-lint] [skip-phpcs]
 
           ---
-          *This PR was automatically created by ${{ github.actor }} using the update-wp-version action.*  
+          *This PR was automatically created by ${{ github.actor }} using the update-wp-version action.*
           *Generated by*: [GitHub Action](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
         labels: "automation,wordpress-version"
         assignees: ${{ github.actor }}
@@ -244,11 +244,11 @@ Generated by: https://github.com/${{ github.repository }}/actions/runs/${{ githu
       run: |
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "## Results" >> $GITHUB_STEP_SUMMARY
-        
+
         if [ "${{ steps.create-pr.outputs.pull-request-number }}" ]; then
           echo "✅ **Pull Request Created**" >> $GITHUB_STEP_SUMMARY
           echo "- **Number**: [${{ steps.create-pr.outputs.pull-request-number }}](${{ steps.create-pr.outputs.pull-request-url }})" >> $GITHUB_STEP_SUMMARY
           echo "- **URL**: ${{ steps.create-pr.outputs.pull-request-url }}" >> $GITHUB_STEP_SUMMARY
         else
           echo "❌ Failed to create pull request" >> $GITHUB_STEP_SUMMARY
-        fi 
+        fi
