@@ -1,4 +1,4 @@
-# Basic Setup Action
+# Base Setup Action
 
 This composite action sets up a basic environment for CI/CD workflows, including PHP and Node.js configuration.
 

@@ -292,6 +292,53 @@ jobs:
   run: npm test
 ```
 
+## Integration with Test Optimization Actions
+
+This action works seamlessly with [`skip-flags-from-config`](../skip-flags-from-config/README.md) to create a **two-tier skip system** for comprehensive test management:
+
+### Two-Tier Skip System
+
+1. **Workflow-Level** (this action): Skip entire workflows via PR flags
+2. **Test-Level** ([skip-flags-from-config](../skip-flags-from-config/README.md)): Skip specific tests within suites
+
+```yaml
+# Tier 1: Check if entire test workflow should be skipped
+- name: Check workflow skip
+  id: workflow-skip
+  uses: the-events-calendar/actions/.github/actions/check-skip-flag@main
+  with:
+    skip-flag: tests
+
+# Tier 2: Get test-specific optimizations (if workflow not skipped)
+- name: Get test optimizations
+  if: steps.workflow-skip.outputs.should-skip != 'true'
+  id: test-flags
+  uses: the-events-calendar/actions/.github/actions/skip-flags-from-config@main
+  with:
+    test-suite-name: views-full-suite
+
+# Run optimized tests
+- name: Run tests
+  if: steps.workflow-skip.outputs.should-skip != 'true'
+  run: |
+    echo "Running with optimizations: ${{ steps.test-flags.outputs.skip-flags }}"
+    phpunit --testsuite=views-full-suite ${{ steps.test-flags.outputs.skip-flags }}
+```
+
+### Benefits of Combined Usage
+
+- **Granular Control**: Skip entire workflows OR optimize specific tests
+- **Developer Flexibility**: Choose between complete skip or optimization
+- **CI Efficiency**: Fast skipping for docs changes, optimized runs for code changes
+- **Debugging Support**: Isolate issues at workflow or test level
+
+### Skip Level Comparison
+
+| Action | Trigger | Purpose | Example Use Case |
+|--------|---------|---------|------------------|
+| `check-skip-flag` | PR body `[skip-tests]` | Skip entire workflow | Documentation-only PR |
+| `skip-flags-from-config` | package.json config | Optimize test execution | Skip slow tests for faster CI |
+
 ## Troubleshooting
 
 ### Flag Not Recognized

@@ -57,21 +57,6 @@ jobs:
                 "phpcs")
                   description="PHP CodeSniffer"
                   ;;
-                "views-core")
-                  description="Core Views Tests"
-                  ;;
-                "views-integration")
-                  description="Views Integration Tests"
-                  ;;
-                "views-full-suite")
-                  description="Full Views Test Suite"
-                  ;;
-                "tests-php")
-                  description="PHP Tests"
-                  ;;
-                "tests-integrations")
-                  description="Third-Party Integration Tests"
-                  ;;
                 "phpstan")
                   description="PHPStan Static Analysis"
                   ;;
