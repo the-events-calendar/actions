@@ -1,0 +1,249 @@
+name: Prepare Branch
+description: 'Creates release branches and performs version bumps for WordPress plugin releases'
+
+inputs:
+  new-branch:
+    description: 'Name of the new branch (e.g. release/T24.centaur)'
+    required: true
+  version-bump-type:
+    description: 'Type of version bump (major, feature, maintenance, hotfix)'
+    required: true
+  gh-bot-token:
+    description: 'GitHub bot token for authentication'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  pull-request-url:
+    description: 'URL of the created pull request'
+    value: ${{ steps.create-pr.outputs.pull-request-url }}
+  pull-request-number:
+    description: 'Number of the created pull request'
+    value: ${{ steps.create-pr.outputs.pull-request-number }}
+  new-version:
+    description: 'The new version that was applied'
+    value: ${{ steps.bump-version.outputs.new_version }}
+  branch-created:
+    description: 'Whether the branch was created or already existed'
+    value: ${{ steps.create-release-branch.outputs.created }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup environment
+      uses: the-events-calendar/actions/.github/actions/basic-setup@main
+      with:
+        setup-php: 'true'
+        setup-node: 'false'
+        fetch-depth: '0'
+
+    - name: Setup Git configuration
+      uses: the-events-calendar/actions/.github/actions/setup-git@main
+
+    - name: Validate inputs
+      id: validate
+      shell: bash
+      run: |
+        echo "## Branch Preparation" >> $GITHUB_STEP_SUMMARY
+        echo "- **New Branch**: \`${{ inputs.new-branch }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Version Bump**: \`${{ inputs.version-bump-type }}\`" >> $GITHUB_STEP_SUMMARY
+        
+        # Extract and validate version bump type
+        version_bump_type="${{ inputs.version-bump-type }}"
+        version_bump_type="${version_bump_type%% *}"  # Remove description if present
+        
+        case "$version_bump_type" in
+          major|feature|maintenance|hotfix)
+            echo "✅ Valid version bump type: $version_bump_type" >> $GITHUB_STEP_SUMMARY
+            ;;
+          *)
+            echo "❌ Invalid version bump type: $version_bump_type" >> $GITHUB_STEP_SUMMARY
+            echo "Valid options: major, feature, maintenance, hotfix"
+            exit 1
+            ;;
+        esac
+        
+        echo "version_bump_type=$version_bump_type" >> $GITHUB_OUTPUT
+
+    - name: Detect current version
+      id: detect-version
+      uses: the-events-calendar/actions/.github/actions/detect-version@main
+
+    - name: Create and setup release branch
+      id: create-release-branch
+      shell: bash
+      run: |
+        new_branch="${{ inputs.new-branch }}"
+        
+        echo "## Release Branch Setup" >> $GITHUB_STEP_SUMMARY
+        
+        if git show-ref --quiet "refs/heads/$new_branch"; then
+          echo "⚠️ Branch \`$new_branch\` already exists, using existing branch" >> $GITHUB_STEP_SUMMARY
+          git fetch origin "$new_branch"
+          git checkout "$new_branch"
+          echo "created=false" >> $GITHUB_OUTPUT
+        else
+          echo "✅ Creating new branch \`$new_branch\`" >> $GITHUB_STEP_SUMMARY
+          git checkout -b "$new_branch"
+          git push origin "$new_branch" || (git fetch origin "$new_branch" && git reset --hard "origin/$new_branch")
+          echo "created=true" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create version bump branch
+      id: create-bump-branch
+      shell: bash
+      run: |
+        sha_short=$(git rev-parse --short ${{ github.sha }})
+        change_branch="task/version-bump-${{ inputs.new-branch }}-$sha_short"
+        
+        echo "## Version Bump Branch" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch**: \`$change_branch\`" >> $GITHUB_STEP_SUMMARY
+        
+        git checkout -b "$change_branch"
+        git push origin "$change_branch"
+        
+        echo "change_branch=$change_branch" >> $GITHUB_OUTPUT
+
+    - name: Apply version bump
+      id: bump-version
+      shell: bash
+      run: |
+        version_bump_type="${{ steps.validate.outputs.version_bump_type }}"
+        current_version="${{ steps.detect-version.outputs.version }}"
+        
+        echo "## Version Bump Process" >> $GITHUB_STEP_SUMMARY
+        echo "- **Current Version**: \`$current_version\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Bump Type**: \`$version_bump_type\`" >> $GITHUB_STEP_SUMMARY
+        
+        # Check if .puprc exists and has version configuration
+        if [ ! -f ".puprc" ]; then
+          echo "❌ .puprc file not found" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        if ! jq -e '.paths.versions' .puprc > /dev/null; then
+          echo "❌ paths.versions not found in .puprc" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### File Updates" >> $GITHUB_STEP_SUMMARY
+        
+        # Process each version file
+        jq -c '.paths.versions[]' .puprc | while read -r version_config; do
+          file=$(echo "$version_config" | jq -r '.file')
+          regex=$(echo "$version_config" | jq -r '.regex')
+          
+          echo "#### \`$file\`" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f "$file" ]; then
+            existing_version=$(grep -Po "$regex" "$file" | grep -Po '(\d+\.\d+\.\d+(\.\d+)?)')
+            
+            if [ -z "$existing_version" ]; then
+              echo "❌ No version found using regex \`$regex\`" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            fi
+            
+            echo "- **Found**: \`$existing_version\`" >> $GITHUB_STEP_SUMMARY
+            
+            # Skip package.json for hotfix bumps
+            if [ "$version_bump_type" = "hotfix" ] && [ "$file" = "package.json" ]; then
+              echo "- **Skipped**: Hotfix mode skips package.json" >> $GITHUB_STEP_SUMMARY
+              continue
+            fi
+            
+            # Parse version components
+            IFS='.' read -r -a version_parts <<< "$existing_version"
+            
+            # Apply version bump logic
+            case "$version_bump_type" in
+              major)
+                version_parts[0]=$((version_parts[0] + 1))
+                version_parts[1]=0
+                version_parts[2]=0
+                unset version_parts[3]
+                ;;
+              feature)
+                version_parts[1]=$((version_parts[1] + 1))
+                version_parts[2]=0
+                unset version_parts[3]
+                ;;
+              maintenance)
+                version_parts[2]=$((version_parts[2] + 1))
+                unset version_parts[3]
+                ;;
+              hotfix)
+                if [ -z "${version_parts[3]}" ]; then
+                  version_parts[3]=1
+                else
+                  version_parts[3]=$((version_parts[3] + 1))
+                fi
+                ;;
+            esac
+            
+            # Construct new version
+            new_version="${version_parts[0]}.${version_parts[1]}.${version_parts[2]}"
+            if [ -n "${version_parts[3]}" ]; then
+              new_version="$new_version.${version_parts[3]}"
+            fi
+            
+            echo "- **Updated**: \`$new_version\`" >> $GITHUB_STEP_SUMMARY
+            
+            # Apply the version update using PHP for reliable regex replacement
+            php_regex=$(echo "$regex" | sed "s/'/\\\\'/g")
+            php -r "file_put_contents('$file', preg_replace('/$php_regex/', '\${1}$new_version', file_get_contents('$file')));"
+            
+            # Store the new version for output
+            echo "new_version=$new_version" >> $GITHUB_OUTPUT
+          else
+            echo "❌ File \`$file\` not found" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+        done
+
+    - name: Create Pull Request
+      id: create-pr
+      uses: peter-evans/create-pull-request@v7
+      with:
+        token: ${{ inputs.gh-bot-token }}
+        base: ${{ inputs.new-branch }}
+        branch: ${{ steps.create-bump-branch.outputs.change_branch }}
+        title: "[BOT] Version bump for '${{ inputs.new-branch }}'"
+        body: |
+          This is an automated PR created by ${{ github.actor }}.
+
+          **Version Bump Details:**
+          - **Branch**: `${{ inputs.new-branch }}`
+          - **Bump Type**: `${{ steps.validate.outputs.version_bump_type }}`
+          - **New Version**: `${{ steps.bump-version.outputs.new_version }}`
+          - **Generated by**: [GitHub Action](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+          **Files Updated:**
+          See the commit details for specific version changes in each file.
+
+          ---
+          *This PR was automatically generated by the prepare-branch action.*
+        labels: "automation,version-bump"
+        assignees: ${{ github.actor }}
+        commit-message: |
+          Version bump for ${{ inputs.new-branch }}
+
+          - Bump type: ${{ steps.validate.outputs.version_bump_type }}
+          - New version: ${{ steps.bump-version.outputs.new_version }}
+
+          Generated by: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+    - name: Update summary with results
+      shell: bash
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Results" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ steps.create-pr.outputs.pull-request-number }}" ]; then
+          echo "✅ **Pull Request Created**" >> $GITHUB_STEP_SUMMARY
+          echo "- **Number**: [${{ steps.create-pr.outputs.pull-request-number }}](${{ steps.create-pr.outputs.pull-request-url }})" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL**: ${{ steps.create-pr.outputs.pull-request-url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **New Version**: \`${{ steps.bump-version.outputs.new_version }}\`" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Failed to create pull request" >> $GITHUB_STEP_SUMMARY
+        fi 

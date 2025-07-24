@@ -51,7 +51,7 @@ jobs:
             for flag in "${found_flags[@]}"; do
               # Extract the part after "skip-" and before "]"
               flag_name=$(echo "$flag" | sed 's/\[skip-\(.*\)\]/\1/' | tr '[:upper:]' '[:lower:]')
-              
+
               # Create human-readable description
               case "$flag_name" in
                 "phpcs")

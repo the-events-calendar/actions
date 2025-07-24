@@ -60,6 +60,8 @@ group:
         dest: .github/workflows/release-update-wp-version.yml
       - source: templates/workflows/skip-flags-parser.yml
         dest: .github/workflows/skip-flags-parser.yml
+      - source: templates/workflows/main-release.yml
+        dest: .github/workflows/main-release.yml
     repos: |
       the-events-calendar/tribe-common@master
       the-events-calendar/the-events-calendar@master
