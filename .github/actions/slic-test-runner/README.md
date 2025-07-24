@@ -1,6 +1,6 @@
 # Slic Test Runner Action
 
-This composite action runs PHP tests using the slic testing framework, which is commonly used for WordPress plugin testing.
+This composite action runs PHP tests using the slic testing framework, which is commonly used for WordPress plugin testing. It leverages the [`check-skip-flag`](../check-skip-flag/README.md) action for enhanced skip flag handling.
 
 ## Inputs
 
@@ -100,11 +100,13 @@ jobs:
 - **WordPress Integration**: Sets up WordPress with specified version
 - **Docker Environment**: Manages Docker containers for testing
 - **PHP File Detection**: Automatically skips if no PHP files changed
-- **Skip Flag Support**: Allows skipping execution based on PR body tags
+- **Enhanced Skip Flag Support**: Uses the [`check-skip-flag`](../check-skip-flag/README.md) action for robust skip flag handling
+- **Case-Insensitive Skip Detection**: Works with any case combination of skip flags
 - **Composer Caching**: Caches composer dependencies for faster runs
 - **Chrome Support**: Sets up Chrome container for browser tests
 - **Plugin Setup**: Configures The Events Calendar and common plugins
 - **Flexible Setup**: Supports additional setup commands before testing
+- **Modular Architecture**: Leverages reusable components for better maintainability
 
 ## Test Suites
 
@@ -119,12 +121,28 @@ Common test suites you can run:
 
 ## Skip Flag Behavior
 
-If a `skip-flag` is provided and the PR body contains `[skip-{flag}]`, the action will:
+This action uses the [`check-skip-flag`](../check-skip-flag/README.md) action internally, which provides enhanced skip flag detection:
 
-- Skip all test execution
-- Add a skip message to the GitHub step summary
+### Enhanced Features:
+- **Case-Insensitive Detection**: Matches `[skip-views-core]`, `[SKIP-VIEWS-CORE]`, `[Skip-Views-Core]`, etc.
+- **Detailed Reporting**: Provides comprehensive step summaries with clear skip reasons
+- **Consistent Behavior**: Uses the same skip logic across all actions
 
-Example: Adding `[skip-views-core]` to your PR description will skip the views-core test suite.
+### Skip Process:
+1. If a `skip-flag` is provided, the action calls `check-skip-flag` to validate the PR body
+2. If the skip flag is found, all test execution is skipped
+3. If no skip flag is provided or the flag is not found, the test process continues
+
+### Example Skip Flag Usage:
+Adding any of these formats to your PR description will skip the views-core test suite:
+
+```markdown
+This PR updates documentation only.
+
+[skip-views-core]
+[SKIP-VIEWS-CORE]
+[Skip-Views-Core]
+```
 
 ## Environment Variables
 
@@ -152,7 +170,8 @@ This action replaces the `slic-test-runner.yml` reusable workflow. The main diff
 
 1. **Secrets**: The `gh-bot-token` is now passed as an input instead of a secret
 2. **Usage**: Called with `uses: ./.github/actions/slic-test-runner` instead of workflow call
-3. **Skip Logic**: The skip condition logic is now handled internally within the action
+3. **Enhanced Skip Logic**: Now uses the dedicated `check-skip-flag` action for improved reliability
+4. **Better Reporting**: Enhanced step summaries with visual indicators
 
 ### Before (Reusable Workflow)
 
@@ -173,6 +192,36 @@ with:
   suite: unit
   skip-flag: views-core
   gh-bot-token: ${{ secrets.BOT_TOKEN }}
+```
+
+## Benefits of Modular Architecture
+
+By using the `check-skip-flag` action internally:
+
+- **Consistency**: Skip flag behavior is identical across all actions
+- **Maintainability**: Skip logic is centralized and easier to update
+- **Reliability**: Enhanced error handling and edge case management
+- **Flexibility**: Benefits from improvements to the `check-skip-flag` action automatically
+
+## GitHub Step Summaries
+
+The action provides rich step summaries based on the execution path:
+
+### When Tests Run:
+```
+## Found PHP file changes, running PHP tests.
+```
+
+### When No PHP Changes:
+```
+## No PHP Files changed, PHP tests automatically pass.
+```
+
+### When Skipped:
+```
+⏭️ Action Skipped
+Reason: Found [skip-views-core] in PR body
+Flag: views-core
 ```
 
 ## Troubleshooting
