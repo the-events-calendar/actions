@@ -19,14 +19,14 @@ This composite action sets up a basic environment for CI/CD workflows, including
 
 ```yaml
 - name: Setup environment
-  uses: the-events-calendar/actions/.github/actions/basic-setup@main
+  uses: the-events-calendar/actions/.github/actions/base-setup@main
 ```
 
 ### Setup with both PHP and Node.js
 
 ```yaml
 - name: Setup environment
-  uses: the-events-calendar/actions/.github/actions/basic-setup@main
+  uses: the-events-calendar/actions/.github/actions/base-setup@main
   with:
     setup-node: 'true'
     php-version: '8.1'
@@ -37,7 +37,7 @@ This composite action sets up a basic environment for CI/CD workflows, including
 
 ```yaml
 - name: Setup environment
-  uses: the-events-calendar/actions/.github/actions/basic-setup@main
+  uses: the-events-calendar/actions/.github/actions/base-setup@main
   with:
     fetch-depth: 50
     gh-bot-token: ${{ secrets.BOT_TOKEN }}
@@ -48,7 +48,7 @@ This composite action sets up a basic environment for CI/CD workflows, including
 
 ```yaml
 - name: Setup environment
-  uses: the-events-calendar/actions/.github/actions/basic-setup@main
+  uses: the-events-calendar/actions/.github/actions/base-setup@main
   with:
     setup-php: false
     setup-node: true
@@ -64,15 +64,15 @@ This composite action sets up a basic environment for CI/CD workflows, including
 
 ## Migration from Reusable Workflow
 
-This action replaces the `basic-setup.yml` reusable workflow. The main differences:
+This action replaces the `base-setup.yml` reusable workflow. The main differences:
 
 1. **Secrets**: The `gh-bot-token` is now passed as an input instead of a secret
 2. **Boolean inputs**: Must be passed as strings (`'true'`/`'false'`) instead of boolean values
-3. **Usage**: Called with `uses: the-events-calendar/actions/.github/actions/basic-setup@main` instead of `uses: ./.github/workflows/reusable/basic-setup.yml`
+3. **Usage**: Called with `uses: the-events-calendar/actions/.github/actions/base-setup@main` instead of `uses: ./.github/workflows/reusable/base-setup.yml`
 
 ### Before (Reusable Workflow)
 ```yaml
-uses: ./.github/workflows/reusable/basic-setup.yml
+uses: ./.github/workflows/reusable/base-setup.yml
 with:
   setup-node: true
 secrets:
@@ -81,7 +81,7 @@ secrets:
 
 ### After (Composite Action)
 ```yaml
-uses: the-events-calendar/actions/.github/actions/basic-setup@main
+uses: the-events-calendar/actions/.github/actions/base-setup@main
 with:
   setup-node: 'true'
   gh-bot-token: ${{ secrets.BOT_TOKEN }}

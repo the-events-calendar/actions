@@ -1,4 +1,4 @@
-name: Basic Setup
+name: Base Setup
 description: 'Sets up PHP and Node.js environment for CI/CD workflows'
 
 inputs:

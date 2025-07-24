@@ -150,7 +150,7 @@ This action eliminates duplicated Composer setup logic found in multiple actions
 - name: Set up Composer
   run: composer install --no-progress --ignore-platform-reqs
 
-# In basic-setup action
+# In base-setup action
 - name: Add composer to cache
   uses: actions/cache@v4
   with:
@@ -472,8 +472,8 @@ composer-version: "2.6.5"
 
 ### With Other Actions
 ```yaml
-- name: Basic setup
-  uses: the-events-calendar/actions/.github/actions/basic-setup@main
+- name: Base setup
+  uses: the-events-calendar/actions/.github/actions/base-setup@main
   with:
     setup-php: 'true'
 

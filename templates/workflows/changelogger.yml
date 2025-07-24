@@ -24,7 +24,7 @@ jobs:
       # Setup environment using action
       - name: Setup environment
         if: steps.check-skip.outputs.should-skip != 'true'
-        uses: the-events-calendar/actions/.github/actions/basic-setup@main
+        uses: the-events-calendar/actions/.github/actions/base-setup@main
         with:
           setup-php: 'true'
           setup-node: 'false'

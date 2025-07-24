@@ -8,7 +8,7 @@ This document summarizes the updates made to template workflows in `templates/wo
 
 **Changes Made:**
 
-- Replaced manual checkout, PHP setup, and caching with `basic-setup` action
+- Replaced manual checkout, PHP setup, and caching with `base-setup` action
 - Updated to use structured composer caching approach
 - Maintained backward compatibility with existing workflow structure
 
@@ -38,7 +38,7 @@ steps:
 ```yaml
 steps:
   - name: Setup environment
-    uses: the-events-calendar/actions/.github/actions/basic-setup@main
+    uses: the-events-calendar/actions/.github/actions/base-setup@main
     with:
       setup-php: 'true'
       setup-node: 'false'
@@ -58,7 +58,7 @@ steps:
 
 **Changes Made:**
 
-- Replaced manual checkout and Node.js setup with `basic-setup` action
+- Replaced manual checkout and Node.js setup with `base-setup` action
 - Simplified workflow by removing .nvmrc detection logic (now handled by action)
 
 **Before:**
@@ -91,7 +91,7 @@ steps:
 ```yaml
 steps:
   - name: Setup environment
-    uses: the-events-calendar/actions/.github/actions/basic-setup@main
+    uses: the-events-calendar/actions/.github/actions/base-setup@main
     with:
       setup-php: 'false'
       setup-node: 'true'
@@ -147,7 +147,7 @@ conditional:
 
 **Changes Made:**
 
-- Replaced manual PHP setup with `basic-setup` action
+- Replaced manual PHP setup with `base-setup` action
 - Added proper composer caching
 - Maintained existing process-changelog action usage
 
@@ -173,7 +173,7 @@ steps:
 ```yaml
 steps:
   - name: Setup environment
-    uses: the-events-calendar/actions/.github/actions/basic-setup@main
+    uses: the-events-calendar/actions/.github/actions/base-setup@main
     with:
       setup-php: 'true'
       setup-node: 'false'
@@ -208,7 +208,7 @@ steps:
 
 ### ❌ Redundant Reusable Workflows
 
-- `/.github/workflows/reusable/basic-setup.yml`
+- `/.github/workflows/reusable/base-setup.yml`
 - `/.github/workflows/reusable/php-change-detector.yml`
 - `/.github/workflows/reusable/slic-test-runner.yml`
 - `/.github/workflows/reusable/` (empty directory)
@@ -248,10 +248,10 @@ When syncing these templates to plugins, the following pattern should be used:
 
 ```yaml
 # Old pattern (replaced)
-- uses: ./.github/workflows/reusable/basic-setup.yml
+- uses: ./.github/workflows/reusable/base-setup.yml
 
 # New pattern
-- uses: the-events-calendar/actions/.github/actions/basic-setup@main
+- uses: the-events-calendar/actions/.github/actions/base-setup@main
 ```
 
 The templates now follow this pattern consistently and will be synced to all repositories automatically.

@@ -192,7 +192,7 @@ diff --git a/src/views/single-event.php b/src/views/single-event.php
 This action replaces the `analyze-changes.yml` reusable workflow. The main differences:
 
 1. **Usage**: Called with `uses: the-events-calendar/actions/.github/actions/analyze-changes@main`
-2. **Setup**: Uses the `basic-setup` action instead of workflow call
+2. **Setup**: Uses the `base-setup` action instead of workflow call
 3. **Outputs**: Access through step outputs instead of job outputs
 
 ### Before (Reusable Workflow)

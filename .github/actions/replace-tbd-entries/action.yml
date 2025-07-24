@@ -29,7 +29,7 @@ runs:
         echo "- Current ref: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
 
     - name: Setup environment
-      uses: the-events-calendar/actions/.github/actions/basic-setup@main
+      uses: the-events-calendar/actions/.github/actions/base-setup@main
       with:
         setup-php: 'false'
         setup-node: 'false'

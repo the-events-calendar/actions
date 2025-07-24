@@ -41,7 +41,7 @@ cd $SCRIPT_DIR/../
 
 # Check for changelog URL in package.json first, then fall back to parameter, then default
 if [ -f "package.json" ] && command -v jq >/dev/null 2>&1; then
-	PACKAGE_CHANGELOG_URL=$(jq -r '.tec.changelog_url // empty' package.json 2>/dev/null)
+	PACKAGE_CHANGELOG_URL=$(jq -r '.["tec-actions"].changelog_url // empty' package.json 2>/dev/null)
 	if [ -n "$PACKAGE_CHANGELOG_URL" ] && [ "$PACKAGE_CHANGELOG_URL" != "null" ]; then
 		CHANGELOG_FULL_URL="$PACKAGE_CHANGELOG_URL"
 		echo "Using changelog URL from package.json: $CHANGELOG_FULL_URL"

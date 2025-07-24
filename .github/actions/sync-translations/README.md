@@ -255,7 +255,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup environment
-        uses: the-events-calendar/actions/.github/actions/basic-setup@main
+        uses: the-events-calendar/actions/.github/actions/base-setup@main
 
       - name: Replace TBD entries
         uses: the-events-calendar/actions/.github/actions/replace-tbd-entries@main
@@ -331,7 +331,7 @@ with:
 
 1. **Secrets → Inputs**: Translation secrets are now passed as inputs
 2. **Usage**: Direct action call instead of workflow call
-3. **Setup**: Uses `basic-setup` action instead of workflow
+3. **Setup**: Uses `base-setup` action instead of workflow
 
 ## Dependencies
 
@@ -339,7 +339,7 @@ with:
 
 This action depends on:
 
-- `the-events-calendar/actions/.github/actions/basic-setup@main`
+- `the-events-calendar/actions/.github/actions/base-setup@main`
 - `the-events-calendar/actions/.github/actions/generate-pot@main`
 - `the-events-calendar/actions/.github/actions/push-translations@main`
 - `the-events-calendar/actions/.github/actions/add-changelog@main`

@@ -150,7 +150,7 @@ jobs:
       release-branch: ${{ steps.create-branch.outputs.branch_name }}
     steps:
       - name: Checkout repository
-        uses: the-events-calendar/actions/.github/actions/basic-setup@main
+        uses: the-events-calendar/actions/.github/actions/base-setup@main
         with:
           setup-php: 'false'
           setup-node: 'false'

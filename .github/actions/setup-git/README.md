@@ -364,7 +364,7 @@ The action fails with exit code 1 if configuration cannot be applied or verified
 
 ```yaml
 - name: Setup environment
-  uses: ./.github/actions/basic-setup@main
+  uses: ./.github/actions/base-setup@main
 
 - name: Configure Git
   uses: the-events-calendar/actions/.github/actions/setup-git@main

@@ -6,12 +6,12 @@ This repository provides a collection of reusable GitHub Actions specifically de
 
 ### 🛠️ Setup and Infrastructure
 
-#### [basic-setup](./basic-setup/)
+#### [base-setup](./base-setup/)
 
 Sets up a basic environment for CI/CD workflows with PHP and Node.js configuration.
 
 ```yaml
-- uses: the-events-calendar/actions/.github/actions/basic-setup@main
+- uses: the-events-calendar/actions/.github/actions/base-setup@main
   with:
     setup-php: 'true'
     setup-node: 'true'
@@ -140,7 +140,7 @@ jobs:
       has-changes: ${{ steps.analyze.outputs.changes-detected }}
     steps:
       - name: Setup environment
-        uses: the-events-calendar/actions/.github/actions/basic-setup@main
+        uses: the-events-calendar/actions/.github/actions/base-setup@main
         with:
           setup-php: 'true'
           setup-node: 'true'
@@ -208,7 +208,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup environment
-        uses: the-events-calendar/actions/.github/actions/basic-setup@main
+        uses: the-events-calendar/actions/.github/actions/base-setup@main
 
       - name: Analyze changes since last release
         id: analyze
@@ -229,18 +229,18 @@ jobs:
 
 If you're migrating from the previous reusable workflows, here are the key changes:
 
-#### Basic Setup
+#### Base Setup
 
 ```yaml
 # Before
-uses: ./.github/workflows/reusable/basic-setup.yml
+uses: ./.github/workflows/reusable/base-setup.yml
 with:
   setup-node: true
 secrets:
   gh-bot-token: ${{ secrets.BOT_TOKEN }}
 
 # After
-uses: the-events-calendar/actions/.github/actions/basic-setup@main
+uses: the-events-calendar/actions/.github/actions/base-setup@main
 with:
   setup-node: 'true'
   gh-bot-token: ${{ secrets.BOT_TOKEN }}
@@ -347,10 +347,10 @@ Always pin to a specific ref for production workflows:
 
 ```yaml
 # Recommended for production
-uses: the-events-calendar/actions/.github/actions/basic-setup@v1.0.0
+uses: the-events-calendar/actions/.github/actions/base-setup@v1.0.0
 
 # Or use main for latest features (development)
-uses: the-events-calendar/actions/.github/actions/basic-setup@main
+uses: the-events-calendar/actions/.github/actions/base-setup@main
 ```
 
 ### Conditional Execution

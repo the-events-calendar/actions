@@ -205,7 +205,7 @@ jobs:
 
 - **PHP Environment**: Sets up PHP 7.4 with Composer
 - **Git Integration**: Configures Git for potential commits
-- **Basic Setup**: Uses shared setup action for consistent environment
+- **Base Setup**: Uses shared setup action for consistent environment
 
 ## Dependencies
 
@@ -427,7 +427,7 @@ with:
 ### Key Differences
 
 1. **Usage**: Direct action call instead of workflow call
-2. **Setup**: Uses `basic-setup` action instead of workflow
+2. **Setup**: Uses `base-setup` action instead of workflow
 3. **Outputs**: Access through step outputs instead of job outputs
 
 ## Integration

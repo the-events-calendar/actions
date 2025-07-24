@@ -278,7 +278,7 @@ with:
 ### Key Differences
 
 1. **Usage**: Direct action call instead of workflow call
-2. **Setup**: Uses `basic-setup` action instead of workflow
+2. **Setup**: Uses `base-setup` action instead of workflow
 3. **Outputs**: Access through step outputs instead of job outputs
 
 ## Best Practices

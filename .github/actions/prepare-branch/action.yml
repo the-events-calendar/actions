@@ -31,7 +31,7 @@ runs:
   using: composite
   steps:
     - name: Setup environment
-      uses: the-events-calendar/actions/.github/actions/basic-setup@main
+      uses: the-events-calendar/actions/.github/actions/base-setup@main
       with:
         setup-php: 'true'
         setup-node: 'false'
