@@ -1,4 +1,4 @@
-name: "Release: Process Changelogs"
+name: "Release: Process Changelog"
 
 # This action will run when it is triggered manually
 on:
@@ -34,7 +34,7 @@ defaults:
     shell: bash
 
 jobs:
-  process-changelog:
+  process_changelog:
     name: "Process the changelog"
     runs-on: ubuntu-latest
     steps:
@@ -46,15 +46,16 @@ jobs:
           php-version: '7.4'
           fetch-depth: '0'
 
+      - name: Setup composer
+        uses: the-events-calendar/actions/.github/actions/setup-composer@main
+
       - name: Set Variables
         id: vars
         run: |
           echo "sha_short=$(git rev-parse --short ${{ github.sha }})" >> $GITHUB_OUTPUT
 
-      - name: Set up Git configuration
-        run: |
-          git config --global user.email "actions@github.com"
-          git config --global user.name "github-actions"
+      - name: Setup Git configuration
+        uses: the-events-calendar/actions/.github/actions/setup-git@main
 
       - name: "Process changelog"
         id: process_changelog
@@ -88,3 +89,12 @@ jobs:
           echo "## Pull Request"  >> $GITHUB_STEP_SUMMARY
           echo "* Number - ${{ steps.cpr.outputs.pull-request-number }}" >> $GITHUB_STEP_SUMMARY
           echo "* URL - [${{ steps.cpr.outputs.pull-request-url }}](${{ steps.cpr.outputs.pull-request-url }})" >> $GITHUB_STEP_SUMMARY
+
+      - name: Display summary
+        run: |
+          echo "## Changelog Processing Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release Version**: \`${{ github.event.inputs.release-version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release Date**: \`${{ github.event.inputs.release-date }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Action Type**: \`${{ github.event.inputs.action-type }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "[skip-changelog] *This PR was generated to move changelog files to the changelog list, thus it should not have a new changelog file.*"

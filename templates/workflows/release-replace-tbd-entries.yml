@@ -1,12 +1,16 @@
 name: "Release: Replace TBD Entries"
-
 on:
   workflow_dispatch:
+    inputs:
+      branch:
+        description: "Target branch"
+        required: false
+        type: string
+        default: "main"
 
 jobs:
   replace-tbd:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,10 +24,8 @@ jobs:
           echo "timestamp=$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
           echo "current_branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
 
-      - name: Set up Git configuration
-        run: |
-          git config --global user.email "actions@github.com"
-          git config --global user.name "github-actions"
+      - name: Setup Git configuration
+        uses: the-events-calendar/actions/.github/actions/setup-git@main
 
       - name: Create branch for changes
         id: create-branch
@@ -37,6 +39,8 @@ jobs:
       - name: Replace TBD entries
         id: replace-tbd
         uses: the-events-calendar/actions/.github/actions/replace-tbd-entries@main
+        with:
+          target-branch: ${{ inputs.branch }}
 
       - name: Commit changes
         if: steps.replace-tbd.outputs.changes-made == 'true'

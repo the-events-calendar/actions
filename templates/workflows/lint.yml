@@ -9,9 +9,15 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
-    if: "!contains(github.event.pull_request.body, '[skip-lint]')"
     steps:
+      - name: Check skip condition
+        id: check-skip
+        uses: the-events-calendar/actions/.github/actions/check-skip-flag@main
+        with:
+          skip-flag: lint
+
       - name: Setup environment
+        if: steps.check-skip.outputs.should-skip != 'true'
         uses: the-events-calendar/actions/.github/actions/basic-setup@main
         with:
           setup-php: 'false'
@@ -21,6 +27,9 @@ jobs:
       # Run linting tasks
       # ------------------------------------------------------------------------------
       - name: Install node modules
+        if: steps.check-skip.outputs.should-skip != 'true'
         run: npm ci
+
       - name: Run linting tasks
+        if: steps.check-skip.outputs.should-skip != 'true'
         run: npm run lint

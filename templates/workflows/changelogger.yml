@@ -14,10 +14,16 @@ jobs:
   check-changelog:
     name:    Check changelog
     runs-on: ubuntu-latest
-    if: "!contains(github.event.pull_request.body, '[skip-changelog]')"
     steps:
+      - name: Check skip condition
+        id: check-skip
+        uses: the-events-calendar/actions/.github/actions/check-skip-flag@main
+        with:
+          skip-flag: changelog
+
       # Setup environment using action
       - name: Setup environment
+        if: steps.check-skip.outputs.should-skip != 'true'
         uses: the-events-calendar/actions/.github/actions/basic-setup@main
         with:
           setup-php: 'true'
@@ -25,25 +31,17 @@ jobs:
           php-version: '7.4'
           fetch-depth: '1000'
 
-      # Enable composer caching
-      - name: Get Composer Cache Directory
-        id: composer-cache-dir
-        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+      # Setup composer with caching
+      - name: Setup composer with caching
+        if: steps.check-skip.outputs.should-skip != 'true'
+        uses: the-events-calendar/actions/.github/actions/setup-composer@main
 
-      - name: Cache composer dependencies
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.composer-cache-dir.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-
-
-      # Install composer packages
-      - name: Install composer dependencies
-        run: composer self-update && composer install --no-progress --ignore-platform-reqs
       # Fetch the target branch before running the check.
       - name: Fetch the target origin branch
+        if: steps.check-skip.outputs.should-skip != 'true'
         run: git fetch origin $GITHUB_BASE_REF
+
       # Check if any changelog file is added when comparing the current branch vs the target branch.
       - name: Check changelog
+        if: steps.check-skip.outputs.should-skip != 'true'
         run: bash bin/check-changelog.sh origin/$GITHUB_BASE_REF HEAD
