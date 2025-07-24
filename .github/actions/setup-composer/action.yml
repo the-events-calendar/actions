@@ -1,0 +1,97 @@
+name: Setup Composer
+description: 'Sets up Composer with intelligent caching and configurable installation options'
+
+inputs:
+  composer-flags:
+    description: 'Additional flags for composer install'
+    required: false
+    default: '--no-progress --ignore-platform-reqs'
+  working-directory:
+    description: 'Working directory for composer operations'
+    required: false
+    default: '.'
+  cache-key-suffix:
+    description: 'Additional suffix for cache key'
+    required: false
+    default: ''
+  skip-cache:
+    description: 'Skip caching step'
+    required: false
+    default: 'false'
+
+outputs:
+  cache-hit:
+    description: 'Whether cache was hit'
+    value: ${{ steps.composer-cache.outputs.cache-hit }}
+  cache-key:
+    description: 'Cache key used'
+    value: ${{ steps.composer-cache.outputs.cache-primary-key }}
+  composer-version:
+    description: 'Composer version used'
+    value: ${{ steps.composer-info.outputs.version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Get Composer info
+      id: composer-info
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        COMPOSER_VERSION=$(composer --version | grep -oP 'Composer version \K[0-9]+\.[0-9]+\.[0-9]+')
+        echo "version=$COMPOSER_VERSION" >> $GITHUB_OUTPUT
+
+        echo "## 📦 Composer Setup" >> $GITHUB_STEP_SUMMARY
+        echo "* **Version**: \`$COMPOSER_VERSION\`" >> $GITHUB_STEP_SUMMARY
+        echo "* **Working Directory**: \`${{ inputs.working-directory }}\`" >> $GITHUB_STEP_SUMMARY
+
+    - name: Get Composer Cache Directory
+      if: inputs.skip-cache != 'true'
+      id: composer-cache-dir
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+    - name: Cache Composer dependencies
+      if: inputs.skip-cache != 'true'
+      id: composer-cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.composer-cache-dir.outputs.dir }}
+        key: ${{ runner.os }}-composer-${{ hashFiles(format('{0}/composer.lock', inputs.working-directory)) }}${{ inputs.cache-key-suffix }}
+        restore-keys: |
+          ${{ runner.os }}-composer-
+
+    - name: Install Composer dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        echo "Installing Composer dependencies with flags: ${{ inputs.composer-flags }}"
+        composer install ${{ inputs.composer-flags }}
+
+        # Add cache info to summary
+        if [[ "${{ inputs.skip-cache }}" != "true" ]]; then
+          if [[ "${{ steps.composer-cache.outputs.cache-hit }}" == "true" ]]; then
+            echo "* **Cache**: ✅ Hit (restored from cache)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "* **Cache**: ❌ Miss (dependencies downloaded)" >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "* **Cache**: ⏭️ Skipped" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        echo "* **Flags**: \`${{ inputs.composer-flags }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "* **Status**: ✅ Dependencies installed" >> $GITHUB_STEP_SUMMARY
+
+    - name: Validate Composer installation
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [ ! -f "vendor/autoload.php" ]; then
+          echo "❌ Composer installation failed - vendor/autoload.php not found" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+
+        # Count installed packages
+        PACKAGE_COUNT=$(composer show --installed --format=json | jq '. | length' 2>/dev/null || echo "unknown")
+        echo "* **Packages Installed**: \`$PACKAGE_COUNT\`" >> $GITHUB_STEP_SUMMARY

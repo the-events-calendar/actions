@@ -1,0 +1,78 @@
+name: Base Setup
+description: 'Sets up PHP and Node.js environment for CI/CD workflows'
+
+inputs:
+  fetch-depth:
+    description: 'Git fetch depth'
+    required: false
+    default: '1000'
+  php-version:
+    description: 'PHP version to use'
+    required: false
+    default: '7.4'
+  node-version-file:
+    description: 'Node version file to use (.nvmrc)'
+    required: false
+    default: '.nvmrc'
+  setup-node:
+    description: 'Whether to setup Node.js'
+    required: false
+    default: 'false'
+  setup-php:
+    description: 'Whether to setup PHP'
+    required: false
+    default: 'true'
+  gh-bot-token:
+    description: 'GitHub bot token for checkout'
+    required: false
+
+runs:
+  using: composite
+  steps:
+    # ------------------------------------------------------------------------------
+    # Checkout the repository
+    # ------------------------------------------------------------------------------
+    - name: Checkout the repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: ${{ inputs.fetch-depth }}
+        token: ${{ inputs.gh-bot-token }}
+        submodules: recursive
+
+    # ------------------------------------------------------------------------------
+    # Setup PHP (if requested)
+    # ------------------------------------------------------------------------------
+    - name: Configure PHP environment
+      if: inputs.setup-php == 'true'
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ inputs.php-version }}
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, sqlite3, gd, exif, iconv
+        coverage: none
+
+    # ------------------------------------------------------------------------------
+    # Setup Node.js (if requested)
+    # ------------------------------------------------------------------------------
+    - name: Check for .nvmrc file
+      if: inputs.setup-node == 'true'
+      id: check-nvmrc
+      shell: bash
+      run: |
+        if [ -f "${{ github.workspace }}/${{ inputs.node-version-file }}" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Setup Node.js
+      if: inputs.setup-node == 'true' && steps.check-nvmrc.outputs.exists == 'true'
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: ${{ inputs.node-version-file }}
+        cache: 'npm'
+        cache-dependency-path: package-lock.json
+
+    - name: Install node modules
+      if: inputs.setup-node == 'true' && steps.check-nvmrc.outputs.exists == 'true'
+      shell: bash
+      run: npm ci
