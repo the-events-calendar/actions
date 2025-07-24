@@ -23,7 +23,7 @@ jobs:
         run: |
           # Get the PR body and ensure it's not empty
           PR_BODY="${{ github.event.pull_request.body }}"
-          
+
           if [ -z "$PR_BODY" ]; then
             echo "PR body is empty, no skip flags to process."
             echo "skipped_workflows=" >> $GITHUB_OUTPUT
@@ -32,38 +32,66 @@ jobs:
             exit 0
           fi
 
-          # Define all possible skip flags with descriptions
-          declare -A skip_flags=(
-            ["[skip-phpcs]"]="PHP CodeSniffer"
-            ["[skip-views-core]"]="Core Views Tests"
-            ["[skip-views-integration]"]="Views Integration Tests"
-            ["[skip-views-full-suite]"]="Full Views Test Suite"
-            ["[skip-tests-php]"]="PHP Tests"
-            ["[skip-tests-integrations]"]="Third-Party Integration Tests"
-            ["[skip-phpstan]"]="PHPStan Static Analysis"
-            ["[skip-lint]"]="Linting"
-          )
+          # Use regex to find all skip flags in the format [skip-*]
+          # This will catch any flag that starts with [skip- and ends with ]
+          skip_flags=$(echo "$PR_BODY" | grep -ioE '\[skip-[^]]+\]' | sort -u || true)
 
-          # Initialize arrays to store found flags
-          found_flags=()
-          found_descriptions=()
-
-          # Check for each skip flag (case-insensitive)
-          for flag in "${!skip_flags[@]}"; do
-            if [[ "${PR_BODY,,}" == *"${flag,,}"* ]]; then
-              found_flags+=("$flag")
-              found_descriptions+=("${skip_flags[$flag]}")
-            fi
-          done
-
-          # Create the output
-          if [ ${#found_flags[@]} -eq 0 ]; then
+          if [ -z "$skip_flags" ]; then
             echo "skipped_workflows=" >> $GITHUB_OUTPUT
             echo "has_skips=false" >> $GITHUB_OUTPUT
             echo "message=No workflows were skipped." >> $GITHUB_OUTPUT
             echo "## Skip Flags Analysis" >> $GITHUB_STEP_SUMMARY
             echo "✅ No skip flags found in PR description." >> $GITHUB_STEP_SUMMARY
           else
+            # Convert to arrays for processing
+            readarray -t found_flags <<< "$skip_flags"
+            found_descriptions=()
+
+            # Generate human-readable descriptions from flag names
+            for flag in "${found_flags[@]}"; do
+              # Extract the part after "skip-" and before "]"
+              flag_name=$(echo "$flag" | sed 's/\[skip-\(.*\)\]/\1/' | tr '[:upper:]' '[:lower:]')
+              
+              # Create human-readable description
+              case "$flag_name" in
+                "phpcs")
+                  description="PHP CodeSniffer"
+                  ;;
+                "views-core")
+                  description="Core Views Tests"
+                  ;;
+                "views-integration")
+                  description="Views Integration Tests"
+                  ;;
+                "views-full-suite")
+                  description="Full Views Test Suite"
+                  ;;
+                "tests-php")
+                  description="PHP Tests"
+                  ;;
+                "tests-integrations")
+                  description="Third-Party Integration Tests"
+                  ;;
+                "phpstan")
+                  description="PHPStan Static Analysis"
+                  ;;
+                "lint")
+                  description="Linting"
+                  ;;
+                "tests")
+                  description="All Tests"
+                  ;;
+                "changelog")
+                  description="Changelog Validation"
+                  ;;
+                *)
+                  # Generic description: convert dashes to spaces and capitalize words
+                  description=$(echo "$flag_name" | tr '-' ' ' | sed 's/\b\w/\U&/g')
+                  ;;
+              esac
+              found_descriptions+=("$description")
+            done
+
             # Convert array to JSON format for output
             flags_json=$(printf '%s\n' "${found_flags[@]}" | jq -R . | jq -s .)
             echo "skipped_workflows=$flags_json" >> $GITHUB_OUTPUT
@@ -106,8 +134,8 @@ jobs:
               repo: context.repo.repo,
             });
 
-            const existingComment = comments.data.find(comment => 
-              comment.body.includes('⚠️ Skipped Workflows') && 
+            const existingComment = comments.data.find(comment =>
+              comment.body.includes('⚠️ Skipped Workflows') &&
               comment.user.type === 'Bot'
             );
 
