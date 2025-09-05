@@ -1,0 +1,103 @@
+name: Sync Translations
+description: 'Syncs translation files and manages GlotPress integration for WordPress plugins'
+
+inputs:
+  target-branch:
+    description: 'Target branch for the workflow'
+    required: false
+    default: 'main'
+  additional-inputs:
+    description: 'Additional inputs to pass through (JSON string)'
+    required: false
+    default: '{}'
+  translations-deploy-host:
+    description: 'Host for translation deployment'
+    required: true
+  translations-deploy-user:
+    description: 'User for translation deployment'
+    required: true
+  translations-deploy-ssh-key:
+    description: 'SSH key for translation deployment'
+    required: true
+  translations-deploy-pot-location:
+    description: 'Location for POT file deployment'
+    required: true
+
+outputs:
+  translation-summary:
+    description: 'Summary of translation changes'
+    value: ${{ steps.set-summary.outputs.summary }}
+  changes-made:
+    description: 'Whether any changes were made'
+    value: ${{ steps.vars.outputs.should_glotpress }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup environment
+      uses: the-events-calendar/actions/.github/actions/base-setup@test/new-actions
+      with:
+        setup-php: 'false'
+        setup-node: 'false'
+        fetch-depth: '1000'
+
+    - name: Set Variables
+      id: vars
+      shell: bash
+      run: |
+        branch_name="${{ inputs.target-branch || github.head_ref || github.ref_name }}"
+        should_glotpress=0
+        if [[ "$branch_name" =~ ^release/.* || "$branch_name" == "master" || "$branch_name" == "main" ]]; then
+            should_glotpress=1
+        fi
+        echo "should_glotpress=$should_glotpress" >> $GITHUB_OUTPUT
+        echo "sha_short=$(git rev-parse --short ${{ github.sha }})" >> $GITHUB_OUTPUT
+
+    - name: Fetch Plugin Slug from .puprc
+      id: puprc
+      shell: bash
+      run: |
+        plugin_slug=$(jq '.i18n | map(select(.url | contains("translations.stellarwp.com")) | .slug) | first' .puprc)
+        echo "plugin_slug=$plugin_slug" >> $GITHUB_ENV
+        echo "plugin_slug=$plugin_slug" >> $GITHUB_OUTPUT
+        echo "## Plugin Slug: \`$plugin_slug\`" >> $GITHUB_STEP_SUMMARY
+
+    - name: Generate POT file
+      id: generate-pot
+      uses: the-events-calendar/actions/.github/actions/generate-pot@test/new-actions
+      with:
+        plugin_path: ${{ github.workspace }}
+        pot_path: ${{github.workspace}}/lang/${{ steps.puprc.outputs.plugin_slug }}.pot
+
+    - name: Push translations
+      id: push-translations
+      if: steps.vars.outputs.should_glotpress == '1'
+      uses: the-events-calendar/actions/.github/actions/push-translations@test/new-actions
+      with:
+        plugin_slug: ${{ steps.puprc.outputs.plugin_slug }}
+        pot_path: lang/${{ steps.puprc.outputs.plugin_slug }}.pot
+      env:
+        TRANSLATIONS_DEPLOY_HOST: ${{ inputs.translations-deploy-host }}
+        TRANSLATIONS_DEPLOY_USER: ${{ inputs.translations-deploy-user }}
+        TRANSLATIONS_DEPLOY_SSH_KEY: ${{ inputs.translations-deploy-ssh-key }}
+        TRANSLATIONS_DEPLOY_POT_LOCATION: ${{ inputs.translations-deploy-pot-location }}
+
+    - name: Add changelog entry
+      id: add-changelog-entry
+      if: steps.vars.outputs.should_glotpress == '1'
+      uses: the-events-calendar/actions/.github/actions/add-changelog@test/new-actions
+      with:
+        file: "task-i18n-${{ steps.vars.outputs.sha_short }}"
+        significance: patch
+        type: language
+        entry: "${{ steps.push-translations.outputs.glotpress-result }}"
+
+    - name: Set output for translation summary
+      id: set-summary
+      shell: bash
+      run: |
+        if [ "${{ steps.vars.outputs.should_glotpress }}" == "1" ]; then
+          echo "summary=${{ steps.push-translations.outputs.glotpress-result }}" >> $GITHUB_OUTPUT
+        else
+          echo "summary=No translation sync performed (not a release branch)" >> $GITHUB_OUTPUT
+        fi

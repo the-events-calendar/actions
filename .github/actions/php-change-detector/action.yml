@@ -1,0 +1,76 @@
+name: PHP Change Detector
+description: 'Detects if PHP files have changed and determines if workflows should run'
+
+inputs:
+  skip-flag:
+    description: 'Skip flag to check for (e.g., skip-phpcs)'
+    required: false
+    default: ''
+
+outputs:
+  has-php-changes:
+    description: 'Whether PHP files have changed'
+    value: ${{ steps.detect-changes.outputs.has_php_changes || steps.skip-outputs.outputs.has_php_changes }}
+  should-run:
+    description: 'Whether the workflow should run'
+    value: ${{ steps.detect-changes.outputs.should_run || steps.skip-outputs.outputs.should_run }}
+
+runs:
+  using: composite
+  steps:
+    # ------------------------------------------------------------------------------
+    # Check skip condition using the dedicated action
+    # ------------------------------------------------------------------------------
+    - name: Check skip condition
+      id: check-skip
+      if: inputs.skip-flag != ''
+      uses: the-events-calendar/actions/.github/actions/check-skip-flag@test/new-actions
+      with:
+        skip-flag: ${{ inputs.skip-flag }}
+
+    # ------------------------------------------------------------------------------
+    # Checkout the repo
+    # ------------------------------------------------------------------------------
+    - name: Checkout the repository
+      if: inputs.skip-flag == '' || steps.check-skip.outputs.should-skip != 'true'
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1000
+        submodules: recursive
+
+    # ------------------------------------------------------------------------------
+    # Check if any PHP files have changed
+    # ------------------------------------------------------------------------------
+    - name: Check PHP file changes
+      if: inputs.skip-flag == '' || steps.check-skip.outputs.should-skip != 'true'
+      id: detect-changes
+      shell: bash
+      run: |
+        php_files=$(git diff ${{ github.event.pull_request.base.sha }} HEAD --name-only | grep -E '\.php$' || true)
+        num_php_files=$(echo "$php_files" | grep -c '^' || echo 0)
+
+        if [[ -z "$php_files" || "$num_php_files" -eq 0 ]]; then
+          echo "has_php_changes=0" >> $GITHUB_OUTPUT
+          echo "should_run=0" >> $GITHUB_OUTPUT
+          echo "## No PHP files changed" >> $GITHUB_STEP_SUMMARY
+          echo "Workflow will not run." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "has_php_changes=1" >> $GITHUB_OUTPUT
+          echo "should_run=1" >> $GITHUB_OUTPUT
+          echo "## Found PHP file changes" >> $GITHUB_STEP_SUMMARY
+          echo "Total changed PHP files: $num_php_files" >> $GITHUB_STEP_SUMMARY
+          echo "$php_files" | sed 's/^/- /' >> $GITHUB_STEP_SUMMARY
+        fi
+
+    # ------------------------------------------------------------------------------
+    # Handle skip case outputs
+    # ------------------------------------------------------------------------------
+    - name: Set skip outputs
+      if: inputs.skip-flag != '' && steps.check-skip.outputs.should-skip == 'true'
+      id: skip-outputs
+      shell: bash
+      run: |
+        echo "has_php_changes=0" >> $GITHUB_OUTPUT
+        echo "should_run=0" >> $GITHUB_OUTPUT
+        echo "## PHP change detection skipped" >> $GITHUB_STEP_SUMMARY
+        echo "**Reason**: ${{ steps.check-skip.outputs.skip-reason }}" >> $GITHUB_STEP_SUMMARY

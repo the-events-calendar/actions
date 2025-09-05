@@ -1,0 +1,48 @@
+name: Setup Git
+description: 'Configures Git user settings for GitHub Actions automation'
+
+inputs:
+  git-user-email:
+    description: 'Git user email for commits'
+    required: false
+    default: 'actions@github.com'
+  git-user-name:
+    description: 'Git user name for commits'
+    required: false
+    default: 'github-actions'
+
+outputs:
+  configured:
+    description: 'Whether Git was successfully configured'
+    value: ${{ steps.configure.outputs.configured }}
+
+runs:
+  using: composite
+  steps:
+    - name: Configure Git user settings
+      id: configure
+      shell: bash
+      run: |
+        git config --global user.email "${{ inputs.git-user-email }}"
+        git config --global user.name "${{ inputs.git-user-name }}"
+
+        # Verify configuration
+        EMAIL=$(git config --global user.email)
+        NAME=$(git config --global user.name)
+
+        if [[ "$EMAIL" == "${{ inputs.git-user-email }}" ]] && [[ "$NAME" == "${{ inputs.git-user-name }}" ]]; then
+          echo "configured=true" >> $GITHUB_OUTPUT
+
+          echo "## ⚙️ Git Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "* **Email**: \`$EMAIL\`" >> $GITHUB_STEP_SUMMARY
+          echo "* **Name**: \`$NAME\`" >> $GITHUB_STEP_SUMMARY
+          echo "* **Status**: ✅ Successfully configured" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "configured=false" >> $GITHUB_OUTPUT
+          echo "## ❌ Git Configuration Failed" >> $GITHUB_STEP_SUMMARY
+          echo "* **Expected Email**: \`${{ inputs.git-user-email }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "* **Actual Email**: \`$EMAIL\`" >> $GITHUB_STEP_SUMMARY
+          echo "* **Expected Name**: \`${{ inputs.git-user-name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "* **Actual Name**: \`$NAME\`" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi

@@ -1,0 +1,82 @@
+name: Detect Version
+description: 'Detects the current version from package.json, PHP files, or .puprc configuration'
+
+inputs:
+  fallback-version:
+    description: 'Fallback version if none found'
+    required: false
+    default: '1.0.0'
+
+outputs:
+  version:
+    description: 'The detected version'
+    value: ${{ steps.detect.outputs.version }}
+  source:
+    description: 'Source where version was found (package.json, php, puprc, fallback)'
+    value: ${{ steps.detect.outputs.source }}
+
+runs:
+  using: composite
+  steps:
+    - name: Detect version
+      id: detect
+      shell: bash
+      run: |
+        DETECTED_VERSION=""
+        SOURCE=""
+
+        # Priority 1: package.json
+        if [ -f "package.json" ]; then
+          PACKAGE_VERSION=$(grep -Po '"version":\s*"\K[^"]+' package.json 2>/dev/null || true)
+          if [ -n "$PACKAGE_VERSION" ]; then
+            DETECTED_VERSION="$PACKAGE_VERSION"
+            SOURCE="package.json"
+          fi
+        fi
+
+        # Priority 2: PHP plugin headers (if package.json didn't work)
+        if [ -z "$DETECTED_VERSION" ]; then
+          for file in $(find . -name "*.php" -type f -not -path "*/vendor/*" -not -path "*/node_modules/*" -not -path "*/tests/*" | head -10); do
+            if grep -q "Version:" "$file"; then
+              PHP_VERSION=$(grep -Po 'Version:\s*\K[0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?' "$file" 2>/dev/null || true)
+              if [ -n "$PHP_VERSION" ]; then
+                DETECTED_VERSION="$PHP_VERSION"
+                SOURCE="php:$file"
+                break
+              fi
+            fi
+          done
+        fi
+
+        # Priority 3: .puprc configuration
+        if [ -z "$DETECTED_VERSION" ] && [ -f ".puprc" ]; then
+          if command -v jq >/dev/null 2>&1; then
+            if jq -e '.paths.versions' .puprc >/dev/null 2>&1; then
+              while read -r version_config; do
+                file=$(echo "$version_config" | jq -r '.file')
+                regex=$(echo "$version_config" | jq -r '.regex')
+                if [ -f "$file" ]; then
+                  PUPRC_VERSION=$(grep -Po "$regex" "$file" 2>/dev/null | grep -Po '(\d+\.\d+\.\d+(\.\d+)?)' | head -1 || true)
+                  if [ -n "$PUPRC_VERSION" ]; then
+                    DETECTED_VERSION="$PUPRC_VERSION"
+                    SOURCE="puprc:$file"
+                    break
+                  fi
+                fi
+              done < <(jq -c '.paths.versions[]' .puprc 2>/dev/null || true)
+            fi
+          fi
+        fi
+
+        # Fallback
+        if [ -z "$DETECTED_VERSION" ]; then
+          DETECTED_VERSION="${{ inputs.fallback-version }}"
+          SOURCE="fallback"
+        fi
+
+        echo "version=$DETECTED_VERSION" >> $GITHUB_OUTPUT
+        echo "source=$SOURCE" >> $GITHUB_OUTPUT
+
+        echo "## Version Detection" >> $GITHUB_STEP_SUMMARY
+        echo "* **Version**: \`$DETECTED_VERSION\`" >> $GITHUB_STEP_SUMMARY
+        echo "* **Source**: \`$SOURCE\`" >> $GITHUB_STEP_SUMMARY

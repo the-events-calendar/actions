@@ -1,0 +1,116 @@
+name: Detect Branch Type
+description: 'Detects the type and characteristics of the current Git branch for conditional workflow logic'
+
+inputs:
+  branch-name:
+    description: 'Branch name to analyze (defaults to current branch)'
+    required: false
+    default: ${{ github.head_ref || github.ref_name }}
+
+outputs:
+  branch-name:
+    description: 'The actual branch name being analyzed'
+    value: ${{ steps.detect.outputs.branch_name }}
+  branch-type:
+    description: 'Type of branch (main, release, feature, hotfix, develop, other)'
+    value: ${{ steps.detect.outputs.branch_type }}
+  is-main:
+    description: 'Whether this is a main/master branch'
+    value: ${{ steps.detect.outputs.is_main }}
+  is-release:
+    description: 'Whether this is a release branch'
+    value: ${{ steps.detect.outputs.is_release }}
+  is-feature:
+    description: 'Whether this is a feature branch'
+    value: ${{ steps.detect.outputs.is_feature }}
+  is-hotfix:
+    description: 'Whether this is a hotfix branch'
+    value: ${{ steps.detect.outputs.is_hotfix }}
+  is-develop:
+    description: 'Whether this is a develop branch'
+    value: ${{ steps.detect.outputs.is_develop }}
+  should-deploy:
+    description: 'Whether deployments should typically run on this branch type'
+    value: ${{ steps.detect.outputs.should_deploy }}
+  should-release:
+    description: 'Whether release processes should run on this branch type'
+    value: ${{ steps.detect.outputs.should_release }}
+
+runs:
+  using: composite
+  steps:
+    - name: Detect branch characteristics
+      id: detect
+      shell: bash
+      run: |
+        BRANCH_NAME="${{ inputs.branch-name }}"
+
+        # Clean up branch name (remove refs/heads/ prefix if present)
+        BRANCH_NAME=$(echo "$BRANCH_NAME" | sed 's|^refs/heads/||')
+
+        # Initialize all outputs
+        BRANCH_TYPE="other"
+        IS_MAIN="false"
+        IS_RELEASE="false"
+        IS_FEATURE="false"
+        IS_HOTFIX="false"
+        IS_DEVELOP="false"
+        SHOULD_DEPLOY="false"
+        SHOULD_RELEASE="false"
+
+        # Detect branch type
+        if [[ "$BRANCH_NAME" =~ ^(main|master)$ ]]; then
+          BRANCH_TYPE="main"
+          IS_MAIN="true"
+          SHOULD_DEPLOY="true"
+          SHOULD_RELEASE="true"
+
+        elif [[ "$BRANCH_NAME" =~ ^release/.* ]]; then
+          BRANCH_TYPE="release"
+          IS_RELEASE="true"
+          SHOULD_DEPLOY="true"
+          SHOULD_RELEASE="true"
+
+        elif [[ "$BRANCH_NAME" =~ ^feature/.* ]]; then
+          BRANCH_TYPE="feature"
+          IS_FEATURE="true"
+
+        elif [[ "$BRANCH_NAME" =~ ^hotfix/.* ]]; then
+          BRANCH_TYPE="hotfix"
+          IS_HOTFIX="true"
+          SHOULD_DEPLOY="true"
+          SHOULD_RELEASE="true"
+
+        elif [[ "$BRANCH_NAME" =~ ^(develop|dev)$ ]]; then
+          BRANCH_TYPE="develop"
+          IS_DEVELOP="true"
+          SHOULD_DEPLOY="true"
+        fi
+
+        # Set outputs
+        echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+        echo "branch_type=$BRANCH_TYPE" >> $GITHUB_OUTPUT
+        echo "is_main=$IS_MAIN" >> $GITHUB_OUTPUT
+        echo "is_release=$IS_RELEASE" >> $GITHUB_OUTPUT
+        echo "is_feature=$IS_FEATURE" >> $GITHUB_OUTPUT
+        echo "is_hotfix=$IS_HOTFIX" >> $GITHUB_OUTPUT
+        echo "is_develop=$IS_DEVELOP" >> $GITHUB_OUTPUT
+        echo "should_deploy=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
+        echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
+
+        # Generate step summary
+        echo "## 🌿 Branch Analysis" >> $GITHUB_STEP_SUMMARY
+        echo "* **Branch**: \`$BRANCH_NAME\`" >> $GITHUB_STEP_SUMMARY
+        echo "* **Type**: \`$BRANCH_TYPE\`" >> $GITHUB_STEP_SUMMARY
+
+        if [[ "$SHOULD_DEPLOY" == "true" ]]; then
+          echo "* **Deployment**: ✅ Eligible" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "* **Deployment**: ❌ Not eligible" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        if [[ "$SHOULD_RELEASE" == "true" ]]; then
+          echo "* **Release Process**: ✅ Eligible" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "* **Release Process**: ❌ Not eligible" >> $GITHUB_STEP_SUMMARY
+        fi

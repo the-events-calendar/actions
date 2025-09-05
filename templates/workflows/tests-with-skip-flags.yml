@@ -1,0 +1,206 @@
+name: Tests with Dynamic Skip Flags
+
+on:
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      test-suite:
+        description: 'Test suite to run'
+        required: true
+        default: 'views-full-suite'
+        type: choice
+        options:
+          - views-core
+          - views-integration
+          - views-full-suite
+          - unit
+          - integration
+
+jobs:
+  test-matrix:
+    name: "Test: ${{ matrix.test-suite }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test-suite:
+          - views-core
+          - views-integration
+          - views-full-suite
+
+    steps:
+      - name: Check if entire test workflow should be skipped
+        id: check-workflow-skip
+        uses: the-events-calendar/actions/.github/actions/check-skip-flag@test/new-actions
+        with:
+          skip-flag: tests
+
+      - name: Setup environment
+        if: steps.check-workflow-skip.outputs.should-skip != 'true'
+        uses: the-events-calendar/actions/.github/actions/basic-setup@test/new-actions
+        with:
+          setup-php: 'true'
+          setup-node: 'false'
+          php-version: '7.4'
+
+      - name: Generate skip flags for test suite optimization
+        if: steps.check-workflow-skip.outputs.should-skip != 'true'
+        id: skip-flags
+        uses: the-events-calendar/actions/.github/actions/skip-flags-from-config@test/new-actions
+        with:
+          test-suite-name: ${{ matrix.test-suite }}
+
+      - name: Display skip information
+        if: steps.check-workflow-skip.outputs.should-skip != 'true'
+        run: |
+          echo "## Skip Configuration for ${{ matrix.test-suite }}"
+          echo "**Workflow Skip**: ${{ steps.check-workflow-skip.outputs.should-skip }}"
+          echo "**Test Suite**: ${{ matrix.test-suite }}"
+          echo "**Test Skip Flags**: ${{ steps.skip-flags.outputs.skip-flags }}"
+          echo "**Flag Count**: ${{ steps.skip-flags.outputs.flag-count }}"
+          echo "**Has Test Flags**: ${{ steps.skip-flags.outputs.has-flags }}"
+
+      - name: Run tests with two-tier skip system
+        if: steps.check-workflow-skip.outputs.should-skip != 'true'
+        uses: the-events-calendar/actions/.github/actions/slic-test-runner@test/new-actions
+        with:
+          suite: ${{ matrix.test-suite }}
+          additional-setup: |
+            echo "## Two-Tier Skip System Active"
+            echo "✅ Workflow-level check passed (no [skip-tests] in PR)"
+
+            # Export skip flags for use in test commands
+            export SKIP_FLAGS="${{ steps.skip-flags.outputs.skip-flags }}"
+            echo "📋 Test-level optimizations: $SKIP_FLAGS"
+
+            # Example: Apply skip flags to test command if available
+            if [ -n "$SKIP_FLAGS" ]; then
+              echo "🚀 Tests will run with ${{ steps.skip-flags.outputs.flag-count }} optimization(s)"
+            else
+              echo "🏃 Tests will run without optimizations (full suite)"
+            fi
+
+      - name: Workflow skipped summary
+        if: steps.check-workflow-skip.outputs.should-skip == 'true'
+        run: |
+          echo "## ⏭️ Test Workflow Skipped"
+          echo "**Reason**: ${{ steps.check-workflow-skip.outputs.skip-reason }}"
+          echo "**Suite**: ${{ matrix.test-suite }}"
+          echo ""
+          echo "The entire test workflow was skipped due to PR flags."
+          echo "Test-level optimizations were not needed."
+
+  single-test:
+    name: "Single Test Suite"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Setup environment
+        uses: the-events-calendar/actions/.github/actions/basic-setup@test/new-actions
+        with:
+          setup-php: 'true'
+          setup-node: 'false'
+          php-version: '7.4'
+
+      - name: Generate skip flags for input suite
+        id: skip-flags
+        uses: the-events-calendar/actions/.github/actions/skip-flags-from-config@test/new-actions
+        with:
+          test-suite-name: ${{ github.event.inputs.test-suite }}
+
+      - name: Run specific test suite
+        run: |
+          SUITE="${{ github.event.inputs.test-suite }}"
+          SKIP_FLAGS="${{ steps.skip-flags.outputs.skip-flags }}"
+
+          echo "Running test suite: $SUITE"
+
+          if [ "${{ steps.skip-flags.outputs.has-flags }}" = "true" ]; then
+            echo "Applying ${{ steps.skip-flags.outputs.flag-count }} skip flags: $SKIP_FLAGS"
+            # Example test command with skip flags
+            ./vendor/bin/phpunit --testsuite="$SUITE" $SKIP_FLAGS
+          else
+            echo "No skip flags configured for this suite"
+            # Example test command without skip flags
+            ./vendor/bin/phpunit --testsuite="$SUITE"
+          fi
+
+  validate-config:
+    name: "Validate Skip Flags Configuration"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup environment
+        uses: the-events-calendar/actions/.github/actions/basic-setup@test/new-actions
+        with:
+          setup-php: 'false'
+          setup-node: 'false'
+
+      - name: Validate package.json skip-flags configuration
+        run: |
+          echo "## Skip Flags Configuration Validation" >> $GITHUB_STEP_SUMMARY
+
+          if [ ! -f "package.json" ]; then
+            echo "❌ package.json not found" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          # Check if tec-actions.skip-flags exists
+          SKIP_FLAGS_CONFIG=$(jq -r '.["tec-actions"]["skip-flags"] // empty' package.json 2>/dev/null)
+
+          if [ -z "$SKIP_FLAGS_CONFIG" ] || [ "$SKIP_FLAGS_CONFIG" = "null" ]; then
+            echo "⚠️ No skip-flags configuration found in package.json" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Skip-flags configuration found" >> $GITHUB_STEP_SUMMARY
+
+            # List all configured test suites
+            echo "**Configured Test Suites:**" >> $GITHUB_STEP_SUMMARY
+            echo "$SKIP_FLAGS_CONFIG" | jq -r 'keys[]' | while read suite; do
+              if [ "$suite" != "default" ]; then
+                flag_count=$(echo "$SKIP_FLAGS_CONFIG" | jq -r --arg suite "$suite" '.[$suite] | length')
+                echo "- \`$suite\` ($flag_count flags)" >> $GITHUB_STEP_SUMMARY
+              fi
+            done
+
+            # Check for default configuration
+            if echo "$SKIP_FLAGS_CONFIG" | jq -e '.default' >/dev/null 2>&1; then
+              default_count=$(echo "$SKIP_FLAGS_CONFIG" | jq -r '.default | length')
+              echo "- \`default\` ($default_count flags)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ No default configuration found" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+      - name: Test skip flags generation for all suites
+        run: |
+          echo "## Testing Skip Flags Generation" >> $GITHUB_STEP_SUMMARY
+
+          # Test common suite names
+          TEST_SUITES=("views-core" "views-integration" "views-full-suite" "unit" "integration" "unknown-suite")
+
+          for suite in "${TEST_SUITES[@]}"; do
+            echo "Testing suite: $suite"
+
+            # Use the action to generate flags
+            SKIP_FLAGS=$(jq -r --arg suite "$suite" '
+              .["tec-actions"]["skip-flags"] as $config |
+              if $config then
+                ($config[$suite] // $config.default // []) as $flags |
+                if ($flags | length) > 0 then
+                  $flags | map("--skip-" + .) | join(" ")
+                else
+                  ""
+                end
+              else
+                ""
+              end
+            ' package.json 2>/dev/null)
+
+            if [ -n "$SKIP_FLAGS" ]; then
+              echo "- ✅ \`$suite\`: $SKIP_FLAGS" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ⚠️ \`$suite\`: No flags generated" >> $GITHUB_STEP_SUMMARY
+            fi
+          done

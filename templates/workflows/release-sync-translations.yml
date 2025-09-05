@@ -41,13 +41,13 @@ jobs:
           echo "plugin_slug=$plugin_slug" >> $GITHUB_OUTPUT
           echo "## Plugin Slug: \`$plugin_slug\`" >> $GITHUB_STEP_SUMMARY
 
-      - uses: the-events-calendar/actions/.github/actions/generate-pot@main
+      - uses: the-events-calendar/actions/.github/actions/generate-pot@test/new-actions
         id: generate-pot
         with:
           plugin_path: ${{ github.workspace }}
           pot_path: ${{github.workspace}}/lang/${{ steps.puprc.outputs.plugin_slug }}.pot
 
-      - uses: the-events-calendar/actions/.github/actions/push-translations@main
+      - uses: the-events-calendar/actions/.github/actions/push-translations@test/new-actions
         id: push-translations
         if: steps.vars.outputs.should_glotpress == '1'
         with:
@@ -59,7 +59,7 @@ jobs:
           TRANSLATIONS_DEPLOY_SSH_KEY: ${{ secrets.TRANSLATIONS_DEPLOY_SSH_KEY }}
           TRANSLATIONS_DEPLOY_POT_LOCATION: ${{ secrets.TRANSLATIONS_DEPLOY_POT_LOCATION }}
 
-      - uses: the-events-calendar/actions/.github/actions/add-changelog@main
+      - uses: the-events-calendar/actions/.github/actions/add-changelog@test/new-actions
         id: add-changelog-entry
         if: steps.vars.outputs.should_glotpress == '1'
         with:

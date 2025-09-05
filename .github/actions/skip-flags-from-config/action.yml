@@ -1,0 +1,129 @@
+name: Skip Flags from Config
+description: 'Reads skip flags configuration from package.json and generates flags for a test suite'
+
+inputs:
+  test-suite-name:
+    description: 'The test suite name to get skip flags for (kebab-case, e.g., "views-full-suite")'
+    required: true
+  package-json-path:
+    description: 'Path to package.json file'
+    required: false
+    default: 'package.json'
+  config-key:
+    description: 'Configuration key path in package.json'
+    required: false
+    default: 'tec-actions.skip-flags'
+
+outputs:
+  skip-flags:
+    description: 'Space-separated string of skip flags (e.g., "--skip-some-test --skip-another-test")'
+    value: ${{ steps.generate-flags.outputs.skip_flags }}
+  flag-count:
+    description: 'Number of skip flags generated'
+    value: ${{ steps.generate-flags.outputs.flag_count }}
+  has-flags:
+    description: 'Whether any skip flags were found (true/false)'
+    value: ${{ steps.generate-flags.outputs.has_flags }}
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+
+    - name: Generate skip flags from configuration
+      id: generate-flags
+      shell: bash
+      run: |
+        PACKAGE_JSON_PATH="${{ inputs.package-json-path }}"
+        CONFIG_KEY="${{ inputs.config-key }}"
+        TEST_SUITE="${{ inputs.test-suite-name }}"
+
+        echo "## Skip Flags Generator" >> $GITHUB_STEP_SUMMARY
+        echo "**Test Suite**: \`$TEST_SUITE\`" >> $GITHUB_STEP_SUMMARY
+        echo "**Config Path**: \`$CONFIG_KEY\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Check if package.json exists
+        if [ ! -f "$PACKAGE_JSON_PATH" ]; then
+          echo "❌ Error: package.json not found at $PACKAGE_JSON_PATH" >> $GITHUB_STEP_SUMMARY
+          echo "skip_flags=" >> $GITHUB_OUTPUT
+          echo "flag_count=0" >> $GITHUB_OUTPUT
+          echo "has_flags=false" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+
+        # Check if jq is available
+        if ! command -v jq >/dev/null 2>&1; then
+          echo "❌ Error: jq is not available. Please install jq to parse JSON." >> $GITHUB_STEP_SUMMARY
+          echo "skip_flags=" >> $GITHUB_OUTPUT
+          echo "flag_count=0" >> $GITHUB_OUTPUT
+          echo "has_flags=false" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+
+        # Extract skip flags configuration
+        SKIP_FLAGS_CONFIG=$(jq -r '.["tec-actions"]["skip-flags"] // empty' "$PACKAGE_JSON_PATH" 2>/dev/null)
+
+        if [ -z "$SKIP_FLAGS_CONFIG" ] || [ "$SKIP_FLAGS_CONFIG" = "null" ]; then
+          echo "⚠️ Warning: No skip-flags configuration found in $CONFIG_KEY" >> $GITHUB_STEP_SUMMARY
+          echo "skip_flags=" >> $GITHUB_OUTPUT
+          echo "flag_count=0" >> $GITHUB_OUTPUT
+          echo "has_flags=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        # Try to get suite-specific flags first
+        SUITE_FLAGS=$(echo "$SKIP_FLAGS_CONFIG" | jq -r --arg suite "$TEST_SUITE" '.[$suite][]? // empty' 2>/dev/null)
+
+        # If no suite-specific flags, fall back to default
+        if [ -z "$SUITE_FLAGS" ]; then
+          echo "ℹ️ No specific flags for \`$TEST_SUITE\`, using default flags" >> $GITHUB_STEP_SUMMARY
+          SUITE_FLAGS=$(echo "$SKIP_FLAGS_CONFIG" | jq -r '.default[]? // empty' 2>/dev/null)
+        else
+          echo "✅ Found specific flags for \`$TEST_SUITE\`" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        # If still no flags, exit with empty result
+        if [ -z "$SUITE_FLAGS" ]; then
+          echo "⚠️ No flags found for \`$TEST_SUITE\` or default" >> $GITHUB_STEP_SUMMARY
+          echo "skip_flags=" >> $GITHUB_OUTPUT
+          echo "flag_count=0" >> $GITHUB_OUTPUT
+          echo "has_flags=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        # Generate --skip- prefixed flags
+        FULL_FLAGS=""
+        FLAG_COUNT=0
+
+        echo "**Generated Flags**:" >> $GITHUB_STEP_SUMMARY
+
+        while IFS= read -r suffix; do
+          if [ -n "$suffix" ]; then
+            FULL_FLAG="--skip-$suffix"
+            if [ -z "$FULL_FLAGS" ]; then
+              FULL_FLAGS="$FULL_FLAG"
+            else
+              FULL_FLAGS="$FULL_FLAGS $FULL_FLAG"
+            fi
+            FLAG_COUNT=$((FLAG_COUNT + 1))
+            echo "- \`$FULL_FLAG\`" >> $GITHUB_STEP_SUMMARY
+          fi
+        done <<< "$SUITE_FLAGS"
+
+        # Output results
+        echo "skip_flags=$FULL_FLAGS" >> $GITHUB_OUTPUT
+        echo "flag_count=$FLAG_COUNT" >> $GITHUB_OUTPUT
+
+        if [ $FLAG_COUNT -gt 0 ]; then
+          echo "has_flags=true" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Result**: Generated $FLAG_COUNT skip flag(s) ✅" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "has_flags=false" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Result**: No skip flags generated ⚠️" >> $GITHUB_STEP_SUMMARY
+        fi
