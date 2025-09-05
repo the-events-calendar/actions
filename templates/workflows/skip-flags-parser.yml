@@ -32,7 +32,7 @@ jobs:
           fi
 
           # Find all skip flags in the PR body
-          skip_flags=$(echo "$PR_BODY" | grep -oE '\[skip-[^\]]+\]' | sort -u | tr '\n' ',' | sed 's/,$//')
+          skip_flags=$(echo "$PR_BODY" | grep -oE '\[skip-[^\]]+\]' || true | sort -u | tr '\n' ',' | sed 's/,$//')
 
           if [ -z "$skip_flags" ]; then
             echo "No skip flags found in PR description."
@@ -45,14 +45,14 @@ jobs:
           echo "Found skip flags: $skip_flags"
           echo "has_skips=true" >> $GITHUB_OUTPUT
           echo "skip_flags=$skip_flags" >> $GITHUB_OUTPUT
-          
+
           # Start building the message content
           echo 'message_content<<SKIP_FLAGS_EOF' >> $GITHUB_OUTPUT
           echo "## ⚠️ Skipped Workflows" >> $GITHUB_OUTPUT
           echo "" >> $GITHUB_OUTPUT
           echo "The following workflows will be skipped based on flags in your PR description:" >> $GITHUB_OUTPUT
           echo "" >> $GITHUB_OUTPUT
-          
+
           # Create summary for step output - start with header
           echo "## Skip Flags Analysis" >> $GITHUB_STEP_SUMMARY
 
@@ -116,7 +116,7 @@ jobs:
           # Add the closing note to PR comment
           echo "" >> $GITHUB_OUTPUT
           echo "> 💡 To run skipped workflows, remove the corresponding flags from your PR description and push a new commit." >> $GITHUB_OUTPUT
-          
+
           # Close the multiline output
           echo 'SKIP_FLAGS_EOF' >> $GITHUB_OUTPUT
 
@@ -126,7 +126,7 @@ jobs:
         with:
           script: |
             const messageContent = `${{ steps.parse-flags.outputs.message_content }}`;
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -138,7 +138,7 @@ jobs:
         if: steps.parse-flags.outputs.has_skips == 'true'
         run: |
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "---" >> $GITHUB_STEP_SUMMARY  
+          echo "---" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Note**: This summary is also posted as a comment on the PR for visibility to reviewers." >> $GITHUB_STEP_SUMMARY
 
