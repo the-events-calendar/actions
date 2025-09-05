@@ -38,84 +38,86 @@ jobs:
             echo "No skip flags found in PR description."
             echo "has_skips=false" >> $GITHUB_OUTPUT
             echo "skip_flags=" >> $GITHUB_OUTPUT
-          else
-            echo "Found skip flags: $skip_flags"
-            echo "has_skips=true" >> $GITHUB_OUTPUT
-            echo "skip_flags=$skip_flags" >> $GITHUB_OUTPUT
-            
-            # Prepare message content for PR comment
-            message_content="## ⚠️ Skipped Workflows\n\nThe following workflows will be skipped based on flags in your PR description:\n"
-            
-            # Create summary for step output - start with header
-            echo "## Skip Flags Analysis" >> $GITHUB_STEP_SUMMARY
-
-            # Count flags first - initialize counter
-            flag_count=0
-            while IFS= read -r flag; do
-              if [ -n "$flag" ]; then
-                flag_count=$((flag_count + 1))
-              fi
-            done <<< "$(echo "$skip_flags" | tr ',' '\n')"
-
-            echo "⚠️ Found $flag_count skip flag(s):" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-
-            # Process each flag for display
-            IFS=',' read -ra FLAGS <<< "$skip_flags"
-            for flag in "${FLAGS[@]}"; do
-              if [ -n "$flag" ]; then
-                # Add to step summary
-                case "$flag" in
-                  "[skip-phpcs]")
-                    echo "- \`$flag\` → PHP CodeSniffer" >> $GITHUB_STEP_SUMMARY
-                    message_content="${message_content}\n- \`$flag\` → **PHP CodeSniffer** will be skipped"
-                    ;;
-                  "[skip-lint]")
-                    echo "- \`$flag\` → JavaScript/CSS Linting" >> $GITHUB_STEP_SUMMARY
-                    message_content="${message_content}\n- \`$flag\` → **JavaScript/CSS Linting** will be skipped"
-                    ;;
-                  "[skip-tests]")
-                    echo "- \`$flag\` → All Tests" >> $GITHUB_STEP_SUMMARY
-                    message_content="${message_content}\n- \`$flag\` → **All Tests** will be skipped"
-                    ;;
-                  "[skip-integration]")
-                    echo "- \`$flag\` → Integration Tests" >> $GITHUB_STEP_SUMMARY
-                    message_content="${message_content}\n- \`$flag\` → **Integration Tests** will be skipped"
-                    ;;
-                  "[skip-unit]")
-                    echo "- \`$flag\` → Unit Tests" >> $GITHUB_STEP_SUMMARY
-                    message_content="${message_content}\n- \`$flag\` → **Unit Tests** will be skipped"
-                    ;;
-                  "[skip-wpunit]")
-                    echo "- \`$flag\` → WordPress Unit Tests" >> $GITHUB_STEP_SUMMARY
-                    message_content="${message_content}\n- \`$flag\` → **WordPress Unit Tests** will be skipped"
-                    ;;
-                  "[skip-acceptance]")
-                    echo "- \`$flag\` → Acceptance Tests" >> $GITHUB_STEP_SUMMARY
-                    message_content="${message_content}\n- \`$flag\` → **Acceptance Tests** will be skipped"
-                    ;;
-                  "[skip-visual]")
-                    echo "- \`$flag\` → Visual Regression Tests" >> $GITHUB_STEP_SUMMARY
-                    message_content="${message_content}\n- \`$flag\` → **Visual Regression Tests** will be skipped"
-                    ;;
-                  *)
-                    echo "- \`$flag\` → Custom skip flag" >> $GITHUB_STEP_SUMMARY
-                    message_content="${message_content}\n- \`$flag\` → **Custom workflow** will be skipped"
-                    ;;
-                esac
-              fi
-            done
-
-            # Add the closing note
-            message_content="${message_content}\n\n> 💡 To run skipped workflows, remove the corresponding flags from your PR description and push a new commit."
-
-            # Store message content for the next step
-            {
-              echo 'message_content<<SKIP_FLAGS_EOF'
-              echo -e "$message_content"
-              echo 'SKIP_FLAGS_EOF'
-            } >> $GITHUB_OUTPUT
+            exit 0
           fi
+
+          # Only execute if we have skip flags
+          echo "Found skip flags: $skip_flags"
+          echo "has_skips=true" >> $GITHUB_OUTPUT
+          echo "skip_flags=$skip_flags" >> $GITHUB_OUTPUT
+          
+          # Prepare message content for PR comment
+          message_content="## ⚠️ Skipped Workflows\n\nThe following workflows will be skipped based on flags in your PR description:\n"
+          
+          # Create summary for step output - start with header
+          echo "## Skip Flags Analysis" >> $GITHUB_STEP_SUMMARY
+
+          # Count flags first - initialize counter
+          flag_count=0
+          while IFS= read -r flag; do
+            if [ -n "$flag" ]; then
+              flag_count=$((flag_count + 1))
+            fi
+          done <<< "$(echo "$skip_flags" | tr ',' '\n')"
+
+          echo "⚠️ Found $flag_count skip flag(s):" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Process each flag for display
+          IFS=',' read -ra FLAGS <<< "$skip_flags"
+          for flag in "${FLAGS[@]}"; do
+            if [ -n "$flag" ]; then
+              # Add to step summary
+              case "$flag" in
+                "[skip-phpcs]")
+                  echo "- \`$flag\` → PHP CodeSniffer" >> $GITHUB_STEP_SUMMARY
+                  message_content="${message_content}\n- \`$flag\` → **PHP CodeSniffer** will be skipped"
+                  ;;
+                "[skip-lint]")
+                  echo "- \`$flag\` → JavaScript/CSS Linting" >> $GITHUB_STEP_SUMMARY
+                  message_content="${message_content}\n- \`$flag\` → **JavaScript/CSS Linting** will be skipped"
+                  ;;
+                "[skip-tests]")
+                  echo "- \`$flag\` → All Tests" >> $GITHUB_STEP_SUMMARY
+                  message_content="${message_content}\n- \`$flag\` → **All Tests** will be skipped"
+                  ;;
+                "[skip-integration]")
+                  echo "- \`$flag\` → Integration Tests" >> $GITHUB_STEP_SUMMARY
+                  message_content="${message_content}\n- \`$flag\` → **Integration Tests** will be skipped"
+                  ;;
+                "[skip-unit]")
+                  echo "- \`$flag\` → Unit Tests" >> $GITHUB_STEP_SUMMARY
+                  message_content="${message_content}\n- \`$flag\` → **Unit Tests** will be skipped"
+                  ;;
+                "[skip-wpunit]")
+                  echo "- \`$flag\` → WordPress Unit Tests" >> $GITHUB_STEP_SUMMARY
+                  message_content="${message_content}\n- \`$flag\` → **WordPress Unit Tests** will be skipped"
+                  ;;
+                "[skip-acceptance]")
+                  echo "- \`$flag\` → Acceptance Tests" >> $GITHUB_STEP_SUMMARY
+                  message_content="${message_content}\n- \`$flag\` → **Acceptance Tests** will be skipped"
+                  ;;
+                "[skip-visual]")
+                  echo "- \`$flag\` → Visual Regression Tests" >> $GITHUB_STEP_SUMMARY
+                  message_content="${message_content}\n- \`$flag\` → **Visual Regression Tests** will be skipped"
+                  ;;
+                *)
+                  echo "- \`$flag\` → Custom skip flag" >> $GITHUB_STEP_SUMMARY
+                  message_content="${message_content}\n- \`$flag\` → **Custom workflow** will be skipped"
+                  ;;
+              esac
+            fi
+          done
+
+          # Add the closing note
+          message_content="${message_content}\n\n> 💡 To run skipped workflows, remove the corresponding flags from your PR description and push a new commit."
+
+          # Store message content for the next step
+          {
+            echo 'message_content<<SKIP_FLAGS_EOF'
+            echo -e "$message_content"
+            echo 'SKIP_FLAGS_EOF'
+          } >> $GITHUB_OUTPUT
 
       - name: Comment on PR with skip flags summary
         if: steps.parse-flags.outputs.has_skips == 'true'
