@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup environment
-        uses: the-events-calendar/actions/.github/actions/base-setup@main
+        uses: the-events-calendar/actions/.github/actions/base-setup@test/new-actions
         with:
           setup-php: 'false'
           setup-node: 'false'

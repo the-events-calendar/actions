@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup environment
-        uses: the-events-calendar/actions/.github/actions/base-setup@main
+        uses: the-events-calendar/actions/.github/actions/base-setup@test/new-actions
         with:
           setup-php: 'true'
           setup-node: 'false'
@@ -47,7 +47,7 @@ jobs:
           fetch-depth: '0'
 
       - name: Setup composer
-        uses: the-events-calendar/actions/.github/actions/setup-composer@main
+        uses: the-events-calendar/actions/.github/actions/setup-composer@test/new-actions
 
       - name: Set Variables
         id: vars
@@ -55,11 +55,11 @@ jobs:
           echo "sha_short=$(git rev-parse --short ${{ github.sha }})" >> $GITHUB_OUTPUT
 
       - name: Setup Git configuration
-        uses: the-events-calendar/actions/.github/actions/setup-git@main
+        uses: the-events-calendar/actions/.github/actions/setup-git@test/new-actions
 
       - name: "Process changelog"
         id: process_changelog
-        uses: the-events-calendar/actions/.github/actions/process-changelog@main
+        uses: the-events-calendar/actions/.github/actions/process-changelog@test/new-actions
         with:
           release-version: ${{ github.event.inputs.release-version }}
           release-date: ${{ github.event.inputs.release-date }}

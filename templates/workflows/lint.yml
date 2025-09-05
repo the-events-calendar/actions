@@ -12,13 +12,13 @@ jobs:
     steps:
       - name: Check skip condition
         id: check-skip
-        uses: the-events-calendar/actions/.github/actions/check-skip-flag@main
+        uses: the-events-calendar/actions/.github/actions/check-skip-flag@test/new-actions
         with:
           skip-flag: lint
 
       - name: Setup environment
         if: steps.check-skip.outputs.should-skip != 'true'
-        uses: the-events-calendar/actions/.github/actions/base-setup@main
+        uses: the-events-calendar/actions/.github/actions/base-setup@test/new-actions
         with:
           setup-php: 'false'
           setup-node: 'true'

@@ -25,7 +25,7 @@ jobs:
           echo "current_branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
 
       - name: Setup Git configuration
-        uses: the-events-calendar/actions/.github/actions/setup-git@main
+        uses: the-events-calendar/actions/.github/actions/setup-git@test/new-actions
 
       - name: Create branch for changes
         id: create-branch
@@ -38,7 +38,7 @@ jobs:
 
       - name: Replace TBD entries
         id: replace-tbd
-        uses: the-events-calendar/actions/.github/actions/replace-tbd-entries@main
+        uses: the-events-calendar/actions/.github/actions/replace-tbd-entries@test/new-actions
         with:
           target-branch: ${{ inputs.branch }}
 

@@ -59,7 +59,7 @@ jobs:
     steps:
       - name: Update WordPress version requirements
         id: wp-update
-        uses: the-events-calendar/actions/.github/actions/update-wp-version@main
+        uses: the-events-calendar/actions/.github/actions/update-wp-version@test/new-actions
         with:
           tested-up-to: ${{ inputs.wp-tested-version }}
           update-min-version: 'yes'
@@ -77,7 +77,7 @@ jobs:
     steps:
       - name: Sync translations
         id: sync-translations
-        uses: the-events-calendar/actions/.github/actions/sync-translations@main
+        uses: the-events-calendar/actions/.github/actions/sync-translations@test/new-actions
         with:
           target-branch: ${{ inputs.target-branch }}
           translations-deploy-host: ${{ secrets.TRANSLATIONS_DEPLOY_HOST }}
@@ -96,7 +96,7 @@ jobs:
     steps:
       - name: Analyze changes
         id: analyze-changes
-        uses: the-events-calendar/actions/.github/actions/analyze-changes@main
+        uses: the-events-calendar/actions/.github/actions/analyze-changes@test/new-actions
         with:
           compare-commit: ""
           output-format: "changelog"
@@ -113,7 +113,7 @@ jobs:
     steps:
       - name: Process changelog
         id: process-changelog
-        uses: the-events-calendar/actions/.github/actions/process-changelog@main
+        uses: the-events-calendar/actions/.github/actions/process-changelog@test/new-actions
         with:
           release-version: ${{ inputs.release-version }}
           release-date: ${{ inputs.release-date }}
@@ -131,7 +131,7 @@ jobs:
     steps:
       - name: Replace TBD entries
         id: replace-tbd
-        uses: the-events-calendar/actions/.github/actions/replace-tbd-entries@main
+        uses: the-events-calendar/actions/.github/actions/replace-tbd-entries@test/new-actions
         with:
           target-branch: ${{ inputs.target-branch }}
 
@@ -150,14 +150,14 @@ jobs:
       release-branch: ${{ steps.create-branch.outputs.branch_name }}
     steps:
       - name: Checkout repository
-        uses: the-events-calendar/actions/.github/actions/base-setup@main
+        uses: the-events-calendar/actions/.github/actions/base-setup@test/new-actions
         with:
           setup-php: 'false'
           setup-node: 'false'
           fetch-depth: '0'
 
       - name: Setup Git configuration
-        uses: the-events-calendar/actions/.github/actions/setup-git@main
+        uses: the-events-calendar/actions/.github/actions/setup-git@test/new-actions
 
       - name: Create release branch
         id: create-branch

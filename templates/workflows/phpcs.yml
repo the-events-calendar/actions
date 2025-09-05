@@ -9,7 +9,7 @@ jobs:
     steps:
       - name: Check PHP changes
         id: php-changes
-        uses: the-events-calendar/actions/.github/actions/php-change-detector@main
+        uses: the-events-calendar/actions/.github/actions/php-change-detector@test/new-actions
         with:
           skip-flag: phpcs
   phpcs:

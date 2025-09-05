@@ -17,14 +17,14 @@ jobs:
     steps:
       - name: Check skip condition
         id: check-skip
-        uses: the-events-calendar/actions/.github/actions/check-skip-flag@main
+        uses: the-events-calendar/actions/.github/actions/check-skip-flag@test/new-actions
         with:
           skip-flag: changelog
 
       # Setup environment using action
       - name: Setup environment
         if: steps.check-skip.outputs.should-skip != 'true'
-        uses: the-events-calendar/actions/.github/actions/base-setup@main
+        uses: the-events-calendar/actions/.github/actions/base-setup@test/new-actions
         with:
           setup-php: 'true'
           setup-node: 'false'
@@ -34,7 +34,7 @@ jobs:
       # Setup composer with caching
       - name: Setup composer with caching
         if: steps.check-skip.outputs.should-skip != 'true'
-        uses: the-events-calendar/actions/.github/actions/setup-composer@main
+        uses: the-events-calendar/actions/.github/actions/setup-composer@test/new-actions
 
       # Fetch the target branch before running the check.
       - name: Fetch the target origin branch

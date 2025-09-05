@@ -32,13 +32,13 @@ jobs:
     steps:
       - name: Check if entire test workflow should be skipped
         id: check-workflow-skip
-        uses: the-events-calendar/actions/.github/actions/check-skip-flag@main
+        uses: the-events-calendar/actions/.github/actions/check-skip-flag@test/new-actions
         with:
           skip-flag: tests
 
       - name: Setup environment
         if: steps.check-workflow-skip.outputs.should-skip != 'true'
-        uses: the-events-calendar/actions/.github/actions/basic-setup@main
+        uses: the-events-calendar/actions/.github/actions/basic-setup@test/new-actions
         with:
           setup-php: 'true'
           setup-node: 'false'
@@ -47,7 +47,7 @@ jobs:
       - name: Generate skip flags for test suite optimization
         if: steps.check-workflow-skip.outputs.should-skip != 'true'
         id: skip-flags
-        uses: the-events-calendar/actions/.github/actions/skip-flags-from-config@main
+        uses: the-events-calendar/actions/.github/actions/skip-flags-from-config@test/new-actions
         with:
           test-suite-name: ${{ matrix.test-suite }}
 
@@ -63,7 +63,7 @@ jobs:
 
       - name: Run tests with two-tier skip system
         if: steps.check-workflow-skip.outputs.should-skip != 'true'
-        uses: the-events-calendar/actions/.github/actions/slic-test-runner@main
+        uses: the-events-calendar/actions/.github/actions/slic-test-runner@test/new-actions
         with:
           suite: ${{ matrix.test-suite }}
           additional-setup: |
@@ -98,7 +98,7 @@ jobs:
 
     steps:
       - name: Setup environment
-        uses: the-events-calendar/actions/.github/actions/basic-setup@main
+        uses: the-events-calendar/actions/.github/actions/basic-setup@test/new-actions
         with:
           setup-php: 'true'
           setup-node: 'false'
@@ -106,7 +106,7 @@ jobs:
 
       - name: Generate skip flags for input suite
         id: skip-flags
-        uses: the-events-calendar/actions/.github/actions/skip-flags-from-config@main
+        uses: the-events-calendar/actions/.github/actions/skip-flags-from-config@test/new-actions
         with:
           test-suite-name: ${{ github.event.inputs.test-suite }}
 
@@ -133,7 +133,7 @@ jobs:
 
     steps:
       - name: Setup environment
-        uses: the-events-calendar/actions/.github/actions/basic-setup@main
+        uses: the-events-calendar/actions/.github/actions/basic-setup@test/new-actions
         with:
           setup-php: 'false'
           setup-node: 'false'
