@@ -31,8 +31,14 @@ jobs:
             exit 0
           fi
 
-          # Find all skip flags in the PR body
-          skip_flags=$(grep -oE '\[skip-[^\]]+\]' <<< "$PR_BODY" || true | sort -u | tr '\n' ',' | sed 's/,$//')
+          # Debug: Show the last few characters of PR body to see the flag
+          echo "DEBUG: Last 100 characters of PR body:"
+          echo "$PR_BODY" | tail -c 100
+          
+          # Find all skip flags in the PR body - use a more robust approach
+          skip_flags=$(printf '%s\n' "$PR_BODY" | grep -oE '\[skip-[a-zA-Z0-9_-]+\]' | sort -u | tr '\n' ',' | sed 's/,$//')
+
+          echo "DEBUG: Raw skip_flags result: '$skip_flags'"
 
           if [ -z "$skip_flags" ]; then
             echo "No skip flags found in PR description."
@@ -45,14 +51,14 @@ jobs:
           echo "Found skip flags: $skip_flags"
           echo "has_skips=true" >> $GITHUB_OUTPUT
           echo "skip_flags=$skip_flags" >> $GITHUB_OUTPUT
-
+          
           # Start building the message content
           echo 'message_content<<SKIP_FLAGS_EOF' >> $GITHUB_OUTPUT
           echo "## ⚠️ Skipped Workflows" >> $GITHUB_OUTPUT
           echo "" >> $GITHUB_OUTPUT
           echo "The following workflows will be skipped based on flags in your PR description:" >> $GITHUB_OUTPUT
           echo "" >> $GITHUB_OUTPUT
-
+          
           # Create summary for step output - start with header
           echo "## Skip Flags Analysis" >> $GITHUB_STEP_SUMMARY
 
@@ -116,7 +122,7 @@ jobs:
           # Add the closing note to PR comment
           echo "" >> $GITHUB_OUTPUT
           echo "> 💡 To run skipped workflows, remove the corresponding flags from your PR description and push a new commit." >> $GITHUB_OUTPUT
-
+          
           # Close the multiline output
           echo 'SKIP_FLAGS_EOF' >> $GITHUB_OUTPUT
 
@@ -126,7 +132,7 @@ jobs:
         with:
           script: |
             const messageContent = `${{ steps.parse-flags.outputs.message_content }}`;
-
+            
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -138,7 +144,7 @@ jobs:
         if: steps.parse-flags.outputs.has_skips == 'true'
         run: |
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY  
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Note**: This summary is also posted as a comment on the PR for visibility to reviewers." >> $GITHUB_STEP_SUMMARY
 
