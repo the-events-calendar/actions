@@ -49,7 +49,8 @@ jobs:
             # Create summary for step output - start with header
             echo "## Skip Flags Analysis" >> $GITHUB_STEP_SUMMARY
 
-            # Count flags first
+            # Count flags first - initialize counter
+            flag_count=0
             while IFS= read -r flag; do
               if [ -n "$flag" ]; then
                 flag_count=$((flag_count + 1))
