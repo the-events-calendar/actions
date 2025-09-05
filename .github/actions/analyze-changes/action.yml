@@ -57,7 +57,7 @@ runs:
   using: composite
   steps:
     - name: Setup environment
-      uses: the-events-calendar/actions/.github/actions/base-setup@main
+      uses: the-events-calendar/actions/.github/actions/base-setup@test/new-actions
       with:
         setup-php: 'false'
         setup-node: 'false'
@@ -176,7 +176,7 @@ runs:
     - name: Create changelog entry for added filters
       id: create-changelog-filters-added
       if: steps.analyze-changes.outputs.has-filters-added == 'true' && inputs.output-format == 'changelog'
-      uses: the-events-calendar/actions/.github/actions/add-changelog@main
+      uses: the-events-calendar/actions/.github/actions/add-changelog@test/new-actions
       with:
         file: "task-analyze-changes-filters-added-${{ github.sha }}"
         significance: patch
@@ -186,7 +186,7 @@ runs:
     - name: Create changelog entry for removed filters
       id: create-changelog-filters-removed
       if: steps.analyze-changes.outputs.has-filters-removed == 'true' && inputs.output-format == 'changelog'
-      uses: the-events-calendar/actions/.github/actions/add-changelog@main
+      uses: the-events-calendar/actions/.github/actions/add-changelog@test/new-actions
       with:
         file: "task-analyze-changes-filters-removed-${{ github.sha }}"
         significance: patch
@@ -196,7 +196,7 @@ runs:
     - name: Create changelog entry for added actions
       id: create-changelog-actions-added
       if: steps.analyze-changes.outputs.has-actions-added == 'true' && inputs.output-format == 'changelog'
-      uses: the-events-calendar/actions/.github/actions/add-changelog@main
+      uses: the-events-calendar/actions/.github/actions/add-changelog@test/new-actions
       with:
         file: "task-analyze-changes-actions-added-${{ github.sha }}"
         significance: patch
@@ -206,7 +206,7 @@ runs:
     - name: Create changelog entry for removed actions
       id: create-changelog-actions-removed
       if: steps.analyze-changes.outputs.has-actions-removed == 'true' && inputs.output-format == 'changelog'
-      uses: the-events-calendar/actions/.github/actions/add-changelog@main
+      uses: the-events-calendar/actions/.github/actions/add-changelog@test/new-actions
       with:
         file: "task-analyze-changes-actions-removed-${{ github.sha }}"
         significance: patch
@@ -216,7 +216,7 @@ runs:
     - name: Create changelog entry for changed views
       id: create-changelog-views-changed
       if: steps.analyze-changes.outputs.has-views-changed == 'true' && inputs.output-format == 'changelog'
-      uses: the-events-calendar/actions/.github/actions/add-changelog@main
+      uses: the-events-calendar/actions/.github/actions/add-changelog@test/new-actions
       with:
         file: "task-analyze-changes-views-changed-${{ github.sha }}"
         significance: patch

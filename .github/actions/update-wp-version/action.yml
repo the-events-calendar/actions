@@ -35,14 +35,14 @@ runs:
   using: composite
   steps:
     - name: Setup environment
-      uses: the-events-calendar/actions/.github/actions/base-setup@main
+      uses: the-events-calendar/actions/.github/actions/base-setup@test/new-actions
       with:
         setup-php: 'false'
         setup-node: 'false'
         fetch-depth: '0'
 
     - name: Setup Git configuration
-      uses: the-events-calendar/actions/.github/actions/setup-git@main
+      uses: the-events-calendar/actions/.github/actions/setup-git@test/new-actions
 
     - name: Validate inputs and calculate versions
       id: calculate-versions

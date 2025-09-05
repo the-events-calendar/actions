@@ -30,7 +30,7 @@ runs:
     - name: Check skip condition
       id: check-skip
       if: inputs.skip-flag != ''
-      uses: the-events-calendar/actions/.github/actions/check-skip-flag@main
+      uses: the-events-calendar/actions/.github/actions/check-skip-flag@test/new-actions
       with:
         skip-flag: ${{ inputs.skip-flag }}
 

@@ -39,7 +39,7 @@ runs:
   using: composite
   steps:
     - name: Setup environment
-      uses: the-events-calendar/actions/.github/actions/base-setup@main
+      uses: the-events-calendar/actions/.github/actions/base-setup@test/new-actions
       with:
         setup-php: 'true'
         setup-node: 'false'
@@ -65,7 +65,7 @@ runs:
     - name: Detect version
       id: detect-version
       if: inputs.release-version == 'figure-it-out'
-      uses: the-events-calendar/actions/.github/actions/detect-version@main
+      uses: the-events-calendar/actions/.github/actions/detect-version@test/new-actions
 
     - name: Set release version
       id: set-version

@@ -35,7 +35,7 @@ runs:
   using: composite
   steps:
     - name: Setup environment
-      uses: the-events-calendar/actions/.github/actions/base-setup@main
+      uses: the-events-calendar/actions/.github/actions/base-setup@test/new-actions
       with:
         setup-php: 'false'
         setup-node: 'false'
@@ -64,7 +64,7 @@ runs:
 
     - name: Generate POT file
       id: generate-pot
-      uses: the-events-calendar/actions/.github/actions/generate-pot@main
+      uses: the-events-calendar/actions/.github/actions/generate-pot@test/new-actions
       with:
         plugin_path: ${{ github.workspace }}
         pot_path: ${{github.workspace}}/lang/${{ steps.puprc.outputs.plugin_slug }}.pot
@@ -72,7 +72,7 @@ runs:
     - name: Push translations
       id: push-translations
       if: steps.vars.outputs.should_glotpress == '1'
-      uses: the-events-calendar/actions/.github/actions/push-translations@main
+      uses: the-events-calendar/actions/.github/actions/push-translations@test/new-actions
       with:
         plugin_slug: ${{ steps.puprc.outputs.plugin_slug }}
         pot_path: lang/${{ steps.puprc.outputs.plugin_slug }}.pot
@@ -85,7 +85,7 @@ runs:
     - name: Add changelog entry
       id: add-changelog-entry
       if: steps.vars.outputs.should_glotpress == '1'
-      uses: the-events-calendar/actions/.github/actions/add-changelog@main
+      uses: the-events-calendar/actions/.github/actions/add-changelog@test/new-actions
       with:
         file: "task-i18n-${{ steps.vars.outputs.sha_short }}"
         significance: patch

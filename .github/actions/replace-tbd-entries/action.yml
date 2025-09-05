@@ -29,7 +29,7 @@ runs:
         echo "- Current ref: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
 
     - name: Setup environment
-      uses: the-events-calendar/actions/.github/actions/base-setup@main
+      uses: the-events-calendar/actions/.github/actions/base-setup@test/new-actions
       with:
         setup-php: 'false'
         setup-node: 'false'
@@ -51,7 +51,7 @@ runs:
 
     - name: Detect current version
       id: detect-version
-      uses: the-events-calendar/actions/.github/actions/detect-version@main
+      uses: the-events-calendar/actions/.github/actions/detect-version@test/new-actions
 
     - name: Find and replace TBD entries
       id: replace-tbd
