@@ -64,13 +64,6 @@ group:
         dest: .github/workflows/main-release.yml
     repos: |
       the-events-calendar/events-pro@test/new-actions
-      # the-events-calendar/tribe-common@master
-      # the-events-calendar/the-events-calendar@master
-      # the-events-calendar/events-eventbrite@master
-      # the-events-calendar/events-community@master
-      # the-events-calendar/events-filterbar@master
-      # the-events-calendar/event-tickets@master
-      # the-events-calendar/event-tickets-plus@master
 
   # Promoter
   # - files:
