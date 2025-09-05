@@ -32,7 +32,7 @@ jobs:
           fi
 
           # Find all skip flags in the PR body
-          skip_flags=$(echo "$PR_BODY" | tr -d '\r' | grep -oE '\[skip-[^\]]+\]' || true | sort -u | tr '\n' ',' | sed 's/,$//')
+          skip_flags=$(grep -oE '\[skip-[^\]]+\]' <<< "$PR_BODY" || true | sort -u | tr '\n' ',' | sed 's/,$//')
 
           if [ -z "$skip_flags" ]; then
             echo "No skip flags found in PR description."
