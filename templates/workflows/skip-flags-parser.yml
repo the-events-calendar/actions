@@ -31,14 +31,8 @@ jobs:
             exit 0
           fi
 
-          # Debug: Show the last few characters of PR body to see the flag
-          echo "DEBUG: Last 100 characters of PR body:"
-          echo "$PR_BODY" | tail -c 100
-          
-          # Find all skip flags in the PR body - use a more robust approach
+          # Find all skip flags in the PR body
           skip_flags=$(printf '%s\n' "$PR_BODY" | grep -oE '\[skip-[a-zA-Z0-9_-]+\]' | sort -u | tr '\n' ',' | sed 's/,$//')
-
-          echo "DEBUG: Raw skip_flags result: '$skip_flags'"
 
           if [ -z "$skip_flags" ]; then
             echo "No skip flags found in PR description."
@@ -52,7 +46,7 @@ jobs:
           echo "has_skips=true" >> $GITHUB_OUTPUT
           echo "skip_flags=$skip_flags" >> $GITHUB_OUTPUT
           
-          # Start building the message content
+          # Start building the message content - escape backticks for JavaScript safety
           echo 'message_content<<SKIP_FLAGS_EOF' >> $GITHUB_OUTPUT
           echo "## ⚠️ Skipped Workflows" >> $GITHUB_OUTPUT
           echo "" >> $GITHUB_OUTPUT
@@ -77,43 +71,43 @@ jobs:
           IFS=',' read -ra FLAGS <<< "$skip_flags"
           for flag in "${FLAGS[@]}"; do
             if [ -n "$flag" ]; then
-              # Add to step summary and PR comment
+              # Add to step summary (with backticks) and PR comment (without backticks to avoid JS issues)
               case "$flag" in
                 "[skip-phpcs]")
                   echo "- \`$flag\` → PHP CodeSniffer" >> $GITHUB_STEP_SUMMARY
-                  echo "- \`$flag\` → **PHP CodeSniffer** will be skipped" >> $GITHUB_OUTPUT
+                  echo "- **$flag** → PHP CodeSniffer will be skipped" >> $GITHUB_OUTPUT
                   ;;
                 "[skip-lint]")
                   echo "- \`$flag\` → JavaScript/CSS Linting" >> $GITHUB_STEP_SUMMARY
-                  echo "- \`$flag\` → **JavaScript/CSS Linting** will be skipped" >> $GITHUB_OUTPUT
+                  echo "- **$flag** → JavaScript/CSS Linting will be skipped" >> $GITHUB_OUTPUT
                   ;;
                 "[skip-tests]")
                   echo "- \`$flag\` → All Tests" >> $GITHUB_STEP_SUMMARY
-                  echo "- \`$flag\` → **All Tests** will be skipped" >> $GITHUB_OUTPUT
+                  echo "- **$flag** → All Tests will be skipped" >> $GITHUB_OUTPUT
                   ;;
                 "[skip-integration]")
                   echo "- \`$flag\` → Integration Tests" >> $GITHUB_STEP_SUMMARY
-                  echo "- \`$flag\` → **Integration Tests** will be skipped" >> $GITHUB_OUTPUT
+                  echo "- **$flag** → Integration Tests will be skipped" >> $GITHUB_OUTPUT
                   ;;
                 "[skip-unit]")
                   echo "- \`$flag\` → Unit Tests" >> $GITHUB_STEP_SUMMARY
-                  echo "- \`$flag\` → **Unit Tests** will be skipped" >> $GITHUB_OUTPUT
+                  echo "- **$flag** → Unit Tests will be skipped" >> $GITHUB_OUTPUT
                   ;;
                 "[skip-wpunit]")
                   echo "- \`$flag\` → WordPress Unit Tests" >> $GITHUB_STEP_SUMMARY
-                  echo "- \`$flag\` → **WordPress Unit Tests** will be skipped" >> $GITHUB_OUTPUT
+                  echo "- **$flag** → WordPress Unit Tests will be skipped" >> $GITHUB_OUTPUT
                   ;;
                 "[skip-acceptance]")
                   echo "- \`$flag\` → Acceptance Tests" >> $GITHUB_STEP_SUMMARY
-                  echo "- \`$flag\` → **Acceptance Tests** will be skipped" >> $GITHUB_OUTPUT
+                  echo "- **$flag** → Acceptance Tests will be skipped" >> $GITHUB_OUTPUT
                   ;;
                 "[skip-visual]")
                   echo "- \`$flag\` → Visual Regression Tests" >> $GITHUB_STEP_SUMMARY
-                  echo "- \`$flag\` → **Visual Regression Tests** will be skipped" >> $GITHUB_OUTPUT
+                  echo "- **$flag** → Visual Regression Tests will be skipped" >> $GITHUB_OUTPUT
                   ;;
                 *)
                   echo "- \`$flag\` → Custom skip flag" >> $GITHUB_STEP_SUMMARY
-                  echo "- \`$flag\` → **Custom workflow** will be skipped" >> $GITHUB_OUTPUT
+                  echo "- **$flag** → Custom workflow will be skipped" >> $GITHUB_OUTPUT
                   ;;
               esac
             fi
