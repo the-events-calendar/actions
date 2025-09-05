@@ -17,5 +17,4 @@ jobs:
       - name: Run GitHub File Sync
         uses: BetaHuhn/repo-file-sync-action@v1
         with:
-          BRANCH: ${{ github.ref_name }}
           GH_PAT: ${{ secrets.GHA_BOT_TOKEN_MANAGER }}

@@ -63,7 +63,6 @@ group:
       - source: templates/workflows/main-release.yml
         dest: .github/workflows/main-release.yml
     repos: |
-
       the-events-calendar/events-pro@test/new-actions
       # the-events-calendar/tribe-common@master
       # the-events-calendar/the-events-calendar@master
@@ -79,5 +78,5 @@ group:
   #      dest: .github/pull_request_template.md
   #    - source: templates/workflows/link-project.yml
   #      dest: .github/workflows/link-project.yml
-  #  repos: |
+  #   repos: |
   #    the-events-calendar/promoter@server/production
