@@ -23,7 +23,7 @@ This action consolidates individual changelog entries into formatted changelog f
 | `release-version` | The release version for changelog generation (e.g., `4.5.0`) | ✅ | `figure-it-out` |
 | `release-date` | Release date in YYYY-MM-DD format | ❌ | `unreleased` |
 | `action-type` | Type of changelog operation (`generate`, `amend`, `amend-version`) | ❌ | `generate` |
-| `changelog-full-url` | URL for "See changelog for all versions" link (can be overridden by `package.json`) | ❌ | `https://evnt.is/1b5k` |
+| `changelog-full-url` | URL for "See changelog for all versions" link (can be overridden by `package.json`) | ❌ | `https://theeventscalendar.com/category/release-notes/` |
 
 ### Action Types
 
@@ -173,7 +173,7 @@ Each plugin can configure its changelog URL in the `package.json` file. Add a `t
 
 1. **`package.json`** - Plugin-specific configuration (recommended)
 2. **Action parameter** - Workflow-level override
-3. **Default value** - `https://evnt.is/1b5k` fallback
+3. **Default value** - `https://theeventscalendar.com/category/release-notes/` fallback
 
 **Example Plugin Configurations:**
 
@@ -181,7 +181,7 @@ Each plugin can configure its changelog URL in the `package.json` file. Add a `t
 // The Events Calendar
 {
   "tec": {
-    "changelog_url": "https://evnt.is/1b5k"
+    "changelog_url": "https://theeventscalendar.com/category/release-notes/"
   }
 }
 
@@ -259,7 +259,7 @@ The action includes comprehensive error handling for:
 = [5.13.0] 2024-02-15 =
 ...content...
 
-[See changelog for all versions](https://evnt.is/1b5k)
+[See changelog for all versions](https://theeventscalendar.com/category/release-notes/)
 ```
 
 ## Integration

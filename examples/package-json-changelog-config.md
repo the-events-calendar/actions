@@ -10,7 +10,7 @@ Add to `package.json`:
   "name": "the-events-calendar",
   "version": "6.14.0",
   "tec": {
-    "changelog_url": "https://evnt.is/1b5k"
+    "changelog_url": "https://theeventscalendar.com/category/release-notes/"
   },
   "dependencies": {...}
 }

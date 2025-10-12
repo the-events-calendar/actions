@@ -14,9 +14,9 @@ inputs:
     required: false
     default: "generate"
   changelog-full-url:
-    description: 'URL to link to the full changelog when trimming is applied (default: https://evnt.is/1b5k)'
+    description: 'URL to link to the full changelog when trimming is applied (default: https://theeventscalendar.com/category/release-notes/)'
     required: false
-    default: "https://evnt.is/1b5k"
+    default: "https://theeventscalendar.com/category/release-notes/"
 
 outputs:
   changelog:
