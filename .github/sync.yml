@@ -62,9 +62,69 @@ group:
       the-events-calendar/events-pro@main
       the-events-calendar/events-eventbrite@main
       the-events-calendar/events-community@main
-      the-events-calendar/events-filterbar@main
       the-events-calendar/event-tickets@main
       the-events-calendar/event-tickets-plus@main
+
+  # events-filterbar: piloting the @stellarwp/changelogger migration (npm-based changelog
+  # tooling instead of automattic/jetpack-changelogger). Split out of the main group above so
+  # this doesn't touch the other repos - some of which have unrelated merge work in flight -
+  # until the pilot is proven. Fold it back into the main group once rolled out further.
+  - files:
+      # Base Files
+      - source: templates/.browserslistrc
+        dest: .browserslistrc
+      - source: templates/.nvmrc
+        dest: .nvmrc
+      - source: templates/.editorconfig
+        dest: .editorconfig
+      - source: templates/license.txt
+        dest: license.txt
+      - source: templates/.eslintignore
+        dest: .eslintignore
+      - source: templates/.stylelintrc.json
+        dest: .stylelintrc.json
+      - source: templates/.gitattributes
+        dest: .gitattributes
+
+      # GitHub Folder
+      - source: templates/pull_request_template.md
+        dest: .github/pull_request_template.md
+
+      # Changelog Folder
+      - source: templates/changelog/.gitkeep
+        dest: changelog/.gitkeep
+
+      # Binary Folder
+      - source: templates/bin/check-changelog-npm.sh
+        dest: bin/check-changelog.sh
+      - source: templates/bin/process-changelog-npm.sh
+        dest: bin/process-changelog.sh
+      - source: templates/bin/tec-changelog-versioning.js
+        dest: bin/tec-changelog-versioning.js
+
+      # GitHub Workflows
+      - source: templates/workflows/release-process-changelog-npm.yml
+        dest: .github/workflows/release-process-changelog.yml
+      - source: templates/workflows/release-prepare-branch.yml
+        dest: .github/workflows/release-prepare-branch.yml
+      - source: templates/workflows/release-sync-translations-npm.yml
+        dest: .github/workflows/release-sync-translations.yml
+      - source: templates/workflows/release-merge-forward.yml
+        dest: .github/workflows/release-merge-forward.yml
+      - source: templates/workflows/release-replace-tbd-entries.yml
+        dest: .github/workflows/release-replace-tbd-entries.yml
+      - source: templates/workflows/lint.yml
+        dest: .github/workflows/lint.yml
+      - source: templates/workflows/link-project.yml
+        dest: .github/workflows/link-project.yml
+      - source: templates/workflows/phpcs.yml
+        dest: .github/workflows/phpcs.yml
+      - source: templates/workflows/changelogger-npm.yml
+        dest: .github/workflows/changelogger.yml
+      - source: templates/workflows/release-update-wp-version.yml
+        dest: .github/workflows/release-update-wp-version.yml
+    repos: |
+      the-events-calendar/events-filterbar@main
 
   # Promoter
   - files:

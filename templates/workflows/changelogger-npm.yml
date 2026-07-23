@@ -1,0 +1,37 @@
+name: Check changelog
+
+on:
+  pull_request:
+    branches:
+      - main
+      - 'release/**'
+    paths-ignore:
+      - '.github/**'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check-changelog:
+    name:    Check changelog
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.pull_request.body, '[skip-changelog]')"
+    steps:
+      # clone the repository
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1000
+          submodules: recursive
+      # setup Node
+      - name: Configure Node environment
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+      # Install npm packages.
+      - run: npm ci
+      # Fetch the target branch before running the check.
+      - name: Fetch the target origin branch
+        run: git fetch origin $GITHUB_BASE_REF
+      # Check if any changelog file is added when comparing the current branch vs the target branch.
+      - name: Check changelog
+        run: bash bin/check-changelog.sh origin/$GITHUB_BASE_REF HEAD
