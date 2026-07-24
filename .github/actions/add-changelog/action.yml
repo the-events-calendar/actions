@@ -16,7 +16,7 @@ inputs:
   type:
     description: 'Changelog Type'
     required: true
-    # feat
+    # feature
     # tweak
     # fix
     # performance
