@@ -28,12 +28,10 @@ group:
       # Binary Folder
       - source: templates/bin/check-changelog.sh
         dest: bin/check-changelog.sh
-      - source: templates/bin/class-tec-changelog-formatter.php
-        dest: bin/class-tec-changelog-formatter.php
       - source: templates/bin/process-changelog.sh
         dest: bin/process-changelog.sh
-      - source: templates/bin/ModifiedSemverVersioning.php
-        dest: bin/ModifiedSemverVersioning.php
+      - source: templates/bin/tec-changelog-versioning.js
+        dest: bin/tec-changelog-versioning.js
 
       # GitHub Workflows
       - source: templates/workflows/release-process-changelog.yml

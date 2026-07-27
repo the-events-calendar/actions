@@ -43,13 +43,10 @@ jobs:
           ref: ${{ github.ref }}
           fetch-depth: 0
 
-      - name: Configure PHP environment
-        uses: shivammathur/setup-php@v2
+      - name: Configure Node environment
+        uses: actions/setup-node@v4
         with:
-          php-version: 7.4
-
-      - name: Set up Composer
-        run: composer install --no-progress --ignore-platform-reqs
+          node-version-file: '.nvmrc'
 
       - name: Set Variables
         id: vars
