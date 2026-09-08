@@ -75,7 +75,7 @@ runs:
           summary '```'
           summary ""
           summary "Then commit and push it in the [plans repo](https://github.com/${PLANS_REPO})."
-          summary "No store registered yet? The \`openspec\` skill walks through it:"
+          summary "No store registered yet? The \`tec-openspec\` skill walks through it:"
           summary "<https://github.com/stellarwp/skills>"
         }
 
