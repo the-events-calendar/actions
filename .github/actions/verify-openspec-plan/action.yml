@@ -23,7 +23,7 @@ outputs:
     description: 'The ticket id that was looked up, empty when none was found.'
     value: ${{ steps.resolve.outputs.ticket_id }}
   plan_found:
-    description: 'Whether an active plan was found (true/false).'
+    description: 'Whether an active plan was found (true/false/archived/skipped).'
     value: ${{ steps.verify.outputs.plan_found }}
 
 runs:
