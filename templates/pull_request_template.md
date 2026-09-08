@@ -42,6 +42,6 @@ Was AI used for this PR [**Y**/n]:
 
 Which model(s):
 
-In what way was AI used: <!-- To create a plan, write the code dn the tests. To perform QA and to create this PR -->
+In what way was AI used: <!-- To create a plan, write the code and the tests. To perform QA and to create this PR -->
 
 - [ ] I own the work being done in this PR and I have personally reviewed it before asking another human to.
