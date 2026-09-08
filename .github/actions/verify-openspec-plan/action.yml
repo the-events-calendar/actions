@@ -45,8 +45,12 @@ runs:
         TICKET_INPUT: ${{ inputs.ticket-id }}
       run: |
         ticket="$TICKET_INPUT"
-        [ -z "$ticket" ] && ticket=$(printf '%s' "$HEAD_REF" | grep -oE '[A-Z][A-Z0-9]+-[0-9]+' | head -1 || true)
-        [ -z "$ticket" ] && ticket=$(printf '%s' "$PR_TITLE"  | grep -oE '[A-Z][A-Z0-9]+-[0-9]+' | head -1 || true)
+        [ -z "$ticket" ] && ticket=$(printf '%s' "$HEAD_REF" | grep -oE '[A-Za-z][A-Za-z0-9]+-[0-9]+' | head -1 || true)
+        [ -z "$ticket" ] && ticket=$(printf '%s' "$PR_TITLE"  | grep -oE '[A-Za-z][A-Za-z0-9]+-[0-9]+' | head -1 || true)
+        # Branches and tickets are upper case (SOFT-1234); OpenSpec change names
+        # must be lower case kebab-case, and `openspec new change` refuses
+        # anything else. Compare and report in the form the store actually uses.
+        ticket=$(printf '%s' "$ticket" | tr '[:upper:]' '[:lower:]')
         echo "ticket_id=$ticket" >> "$GITHUB_OUTPUT"
 
     # ------------------------------------------------------------------------------
