@@ -28,10 +28,20 @@ Include any important information for reviewers
 ### ✔️ Checklist
 - [ ] There is an OpenSpec plan for this work in `tec-plans`, and it still describes what this PR actually does.
 - [ ] Ran `npm run changelog` to add changelog file(s). More info [here](https://docs.theeventscalendar.com/developer/git/changelogs/#process)
-- [ ] Code is covered by **NEW** `wpunit` or `integration` tests.
-- [ ] Code is covered by **EXISTING** `wpunit` or `integration` tests.
+- [ ] Code is covered by tests.
 - [ ] Are all the **required** tests passing?
 - [ ] Automated code review comments are addressed.
-- [ ] Have you added Artifacts?
+- [ ] Artifacts added.
 - [ ] Check the base branch for your PR.
-- [ ] Add your PR to the project board for the release.
+- [ ] The linked ticket includes all the information for a QA engineer to verify the work.
+- [ ] Pull Request is ready to be reviewed by a Human.
+
+### 🤖 AI Disclosure
+
+Was AI used for this PR [**Y**/n]:
+
+Which model(s):
+
+In what way was AI used: <!-- To create a plan, write the code dn the tests. To perform QA and to create this PR -->
+
+- [ ] I own the work being done in this PR and I have personally reviewed it before asking another human to.
