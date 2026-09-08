@@ -59,5 +59,5 @@ The check needs `GHA_BOT_TOKEN_MANAGER` to have read access to the `plans`
 repository, which is internal.
 
 The `tec-openspec` skill in
-[stellarwp/skills](https://github.com/stellarwp/skills) covers
+[stellarwp/skills-se](https://github.com/stellarwp/skills-se) covers
 the workflow itself — creating a change, naming it, and archiving it.

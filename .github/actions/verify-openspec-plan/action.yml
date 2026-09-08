@@ -76,7 +76,7 @@ runs:
           summary ""
           summary "Then commit and push it in the [plans repo](https://github.com/${PLANS_REPO})."
           summary "No store registered yet? The \`tec-openspec\` skill walks through it:"
-          summary "<https://github.com/stellarwp/skills>"
+          summary "<https://github.com/stellarwp/skills-se>"
         }
 
         if [ -z "$TICKET" ]; then
