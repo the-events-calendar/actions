@@ -27,7 +27,7 @@ Include any important information for reviewers
 
 ### ✔️ Checklist
 - [ ] There is an OpenSpec plan for this work in `tec-plans`, and it still describes what this PR actually does.
-- [ ] Ran `npm run changelog` to add changelog file(s). More info [here](https://docs.theeventscalendar.com/developer/git/changelogs/#process)
+- [ ] Changelog file(s) added.
 - [ ] Code is covered by tests.
 - [ ] All the **required** tests are passing.
 - [ ] Automated code review comments are addressed.
