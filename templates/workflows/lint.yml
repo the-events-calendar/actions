@@ -1,14 +1,19 @@
 name: 'npm lint'
 on:
   pull_request:
-  workflow_dispatch:
     paths:
       - 'src/modules/**.js'
       - 'src/resources/js/**.js'
       - 'src/resources/postcss/**.pcss'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: "!contains(github.event.pull_request.body, '[skip-lint]')"
     steps:
       - name: Checkout the repository
