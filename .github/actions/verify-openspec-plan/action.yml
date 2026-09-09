@@ -96,7 +96,55 @@ runs:
         active_path="openspec/changes/${TICKET}"
         archive_path="openspec/changes/archive/${TICKET}"
 
-        if gh api "repos/${PLANS_REPO}/contents/${active_path}" --silent 2>/dev/null; then
+        # gh exits 1 for every failure, so a missing plan, a bad token, a rate
+        # limit and a 500 all look alike. The status is only in the message, so
+        # read that: 404 means absent, anything else is a problem to report
+        # rather than a plan to declare missing.
+        api_probe() {
+          local err
+          if err=$(gh api "$1" --silent 2>&1); then echo "ok"; return 0; fi
+          case "$err" in
+            *"(HTTP 404)"*) echo "404" ;;
+            *)              printf 'error\t%s' "$(printf '%s' "$err" | head -1)" ;;
+          esac
+        }
+
+        # GitHub answers 404 for a repository the token cannot see, so an access
+        # problem is indistinguishable from an absent change unless the store
+        # itself is probed first.
+        repo_probe=$(api_probe "repos/${PLANS_REPO}")
+        if [ "$repo_probe" != "ok" ]; then
+          echo "::warning title=OpenSpec::Cannot read ${PLANS_REPO}, so no plan could be verified."
+          summary "## OpenSpec plan: could not be checked"
+          summary ""
+          summary "The check could not read [\`${PLANS_REPO}\`](https://github.com/${PLANS_REPO}), so this says nothing about whether a plan exists."
+          summary ""
+          if [ "$repo_probe" = "404" ]; then
+            summary "The store is internal. The token this workflow runs with most likely has no access to it, which GitHub reports as a 404. Adding \`@tec-bot\` to the repository fixes it."
+          else
+            summary "The API reported: \`$(printf '%s' "$repo_probe" | cut -f2-)\`"
+          fi
+          echo "plan_found=unknown" >> "$GITHUB_OUTPUT"
+          [ "$ENFORCEMENT" = "block" ] && exit 1
+          exit 0
+        fi
+
+        active_probe=$(api_probe "repos/${PLANS_REPO}/contents/${active_path}")
+        case "$active_probe" in
+          error*)
+            echo "::warning title=OpenSpec::Looking up ${TICKET} failed, so no plan could be verified."
+            summary "## OpenSpec plan: could not be checked"
+            summary ""
+            summary "Looking up \`${TICKET}\` failed: \`$(printf '%s' "$active_probe" | cut -f2-)\`"
+            summary ""
+            summary "This says nothing about whether a plan exists."
+            echo "plan_found=unknown" >> "$GITHUB_OUTPUT"
+            [ "$ENFORCEMENT" = "block" ] && exit 1
+            exit 0
+            ;;
+        esac
+
+        if [ "$active_probe" = "ok" ]; then
           echo "::notice title=OpenSpec::Plan ${TICKET} found in ${PLANS_REPO}."
           summary "## OpenSpec plan: found"
           summary ""
@@ -111,7 +159,8 @@ runs:
           exit 0
         fi
 
-        if gh api "repos/${PLANS_REPO}/contents/${archive_path}" --silent 2>/dev/null; then
+        archive_probe=$(api_probe "repos/${PLANS_REPO}/contents/${archive_path}")
+        if [ "$archive_probe" = "ok" ]; then
           echo "::warning title=OpenSpec::Plan ${TICKET} is already archived while this PR is still open."
           summary "## OpenSpec plan: archived early"
           summary ""
