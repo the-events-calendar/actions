@@ -58,6 +58,7 @@ looks like coverage and is worse than none.
 The check needs `GHA_BOT_TOKEN_MANAGER` to have read access to the `plans`
 repository, which is internal.
 
-The `tec-openspec` skill in
-[stellarwp/skills-se](https://github.com/stellarwp/skills-se) covers
-the workflow itself — creating a change, naming it, and archiving it.
+The [`openspec-workflow` skill](https://github.com/stellarwp/skills-se) covers
+the workflow itself — writing a proposal worth reviewing and keeping it current —
+and its TEC extension, `tec-openspec`, covers the shared store, the ticket-ID
+naming, and archiving once (after the last repository merges, not per repo).
