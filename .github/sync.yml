@@ -72,3 +72,28 @@ group:
         dest: .github/workflows/link-project.yml
     repos: |
       the-events-calendar/promoter@server/production
+
+  # OpenSpec plan check — every active product, whatever its stack.
+  # Planning is the one thing a plugin, a library and a service all share, so this
+  # group is deliberately narrow: one workflow, nothing stack-specific. The groups
+  # above stay the place for plugin and Promoter specific files.
+  - files:
+      - source: templates/workflows/openspec-plan.yml
+        dest: .github/workflows/openspec-plan.yml
+    repos: |
+      the-events-calendar/tribe-common@main
+      the-events-calendar/the-events-calendar@main
+      the-events-calendar/events-pro@main
+      the-events-calendar/events-eventbrite@main
+      the-events-calendar/events-community@main
+      the-events-calendar/events-filterbar@main
+      the-events-calendar/event-tickets@main
+      the-events-calendar/event-tickets-plus@main
+      the-events-calendar/advanced-post-manager@main
+      the-events-calendar/event-tickets-plus-app@master
+      the-events-calendar/event-tickets-seating-service@main
+      the-events-calendar/event-tickets-seating-service-auth@main
+      the-events-calendar/promoter-auth-connector@main
+      the-events-calendar/promoter@server/production
+      the-events-calendar/whodat@server/production
+      the-events-calendar/event-aggregator-site@server/production
