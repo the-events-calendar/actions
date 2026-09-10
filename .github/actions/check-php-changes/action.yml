@@ -15,8 +15,13 @@ runs:
     - name: Check for changed PHP files
       id: check_changes
       shell: bash
+      env:
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
       run: |
-        if ! git diff --name-only --diff-filter=ACMRT ${{ github.event.pull_request.base.sha }} HEAD | grep -q "\.php$"; then
+        # A shallow clone has no base commit. Fetch it, so the diff fails loudly rather
+        # than a git error reading as "no PHP files changed".
+        git fetch --no-tags --depth=1 origin "$BASE_SHA"
+        if ! git diff --name-only --diff-filter=ACMRT "$BASE_SHA" HEAD | grep -q "\.php$"; then
           echo "value=false" >> $GITHUB_OUTPUT
           echo "## No PHP files changed, skipping tests." >> $GITHUB_STEP_SUMMARY
         else

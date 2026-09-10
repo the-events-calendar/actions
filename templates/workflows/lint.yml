@@ -21,6 +21,9 @@ jobs:
         with:
           fetch-depth: 1
           submodules: recursive
+          # npm ci runs lifecycle scripts from the PR's package.json; keep the token
+          # out of .git/config so those scripts cannot read it.
+          persist-credentials: false
       # ------------------------------------------------------------------------------
       # Setup Node.
       # ------------------------------------------------------------------------------
