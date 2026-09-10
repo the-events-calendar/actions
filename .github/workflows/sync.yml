@@ -13,8 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@main
+        uses: actions/checkout@v7
       - name: Run GitHub File Sync
         uses: BetaHuhn/repo-file-sync-action@v1
         with:
           GH_PAT: ${{ secrets.GHA_BOT_TOKEN_MANAGER }}
+          # Synced files never carry a changelog entry; skip the check that would ask for one.
+          PR_BODY: '[skip-changelog]'
