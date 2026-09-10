@@ -16,6 +16,9 @@ on:
           - 'no'
         default: 'no'
 
+permissions:
+  contents: read
+
 jobs:
   update-versions:
     runs-on: ubuntu-latest
@@ -24,6 +27,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
+          token: ${{ secrets.GHA_BOT_TOKEN_MANAGER }}
 
       - name: Set Variables
         id: vars
@@ -46,14 +50,31 @@ jobs:
 
       - name: Calculate and update versions
         id: update-versions
+        env:
+          TESTED_UP_TO: ${{ github.event.inputs.tested_up_to }}
         run: |
-          TESTED_VERSION="${{ github.event.inputs.tested_up_to }}"
+          TESTED_VERSION="$TESTED_UP_TO"
+
+          if ! [[ "$TESTED_VERSION" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "::error::tested_up_to must look like 6.8 or 6.8.1, got '$TESTED_VERSION'."
+            exit 1
+          fi
+
           IFS='.' read -r -a tested_parts <<< "$TESTED_VERSION"
 
-          # Calculate minimum version (2 minor versions behind, using only major.minor)
-          min_major=$((tested_parts[0]))
-          min_minor=$((tested_parts[1] - 2))
-          MIN_VERSION="$min_major.$min_minor"
+          # Two minor versions behind, major.minor only. WordPress publishes no mapping
+          # from x.0 back into the previous major, so refuse rather than derive one.
+          MIN_VERSION=""
+          if [ "${{ github.event.inputs.update_min_version }}" = "yes" ]; then
+            min_major=$((tested_parts[0]))
+            min_minor=$((tested_parts[1] - 2))
+            if [ "$min_minor" -lt 0 ]; then
+              echo "::error::Cannot derive a minimum version two minors behind $TESTED_VERSION; set it by hand."
+              exit 1
+            fi
+            MIN_VERSION="$min_major.$min_minor"
+            echo "MIN_VERSION=$MIN_VERSION" >> $GITHUB_OUTPUT
+          fi
 
           echo "## Version Updates" >> $GITHUB_STEP_SUMMARY
           echo "* Tested Up To: \`$TESTED_VERSION\`" >> $GITHUB_STEP_SUMMARY
@@ -87,8 +108,9 @@ jobs:
           # Update tests-php.yml and other workflow files if minimum version is being updated (skips self)
           if [ "${{ github.event.inputs.update_min_version }}" = "yes" ] && [ -d ".github/workflows" ]; then
             for wf in .github/workflows/*.yml; do
-              [ "$(basename "$wf")" = "update-wp-version.yml" ] && continue
-              sed -i "s/-wp core update --force --version=[0-9.]*/wp core update --force --version=$MIN_VERSION/" "$wf"
+              [ "$(basename "$wf")" = "release-update-wp-version.yml" ] && continue
+              grep -q "wp core update --force --version=" "$wf" || continue
+              sed -i "s/wp core update --force --version=[0-9.]*/wp core update --force --version=$MIN_VERSION/" "$wf"
               echo "* Updated \`$wf\`" >> $GITHUB_STEP_SUMMARY
             done
           fi

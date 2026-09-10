@@ -28,6 +28,9 @@ defaults:
   run:
     shell: bash
 
+permissions:
+  contents: read
+
 jobs:
   process-changelog:
     name: "Process the changelog"
@@ -42,6 +45,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
           fetch-depth: 0
+          token: ${{ secrets.GHA_BOT_TOKEN_MANAGER }}
 
       - name: Configure Node environment
         uses: actions/setup-node@v4

@@ -1,0 +1,50 @@
+name: 'Check workflow templates'
+
+# ------------------------------------------------------------------------------
+# Templates here are copied verbatim into every product repo, so a mistake reaches
+# a dozen repos before a human sees it.
+#
+# The templates are not workflows of this repository, so they are staged into a
+# .github/workflows path before linting.
+#
+# shellcheck is off: the templates carry a few dozen SC2086/SC2129 style hits.
+# Turn it back on once those are cleaned up.
+# ------------------------------------------------------------------------------
+
+on:
+  pull_request:
+    paths:
+      - 'templates/workflows/**'
+      - '.github/workflows/**'
+      - 'tests/**'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+        with:
+          # The repo is bind-mounted into the actionlint container, and nothing here
+          # needs git credentials.
+          persist-credentials: false
+
+      - name: Stage the templates where actionlint expects workflows
+        run: |
+          mkdir -p .actionlint/.github/workflows
+          cp templates/workflows/*.yml .actionlint/.github/workflows/
+
+      - name: Run actionlint
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 \
+            -color -shellcheck= .actionlint/.github/workflows/*.yml .github/workflows/*.yml
+
+      - name: Check the WordPress version arithmetic
+        run: python3 tests/test-wp-version-math.py
