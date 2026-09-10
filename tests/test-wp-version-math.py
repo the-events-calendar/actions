@@ -74,10 +74,8 @@ JQ_STUB = "#!/bin/sh\necho test-plugin.php\n"
 
 def run(script: str, tested: str, update_min: str):
     """Execute the extracted script in a throwaway repo, as `bash -e` would on a runner."""
-    # tested_up_to reaches the script through the environment so a dispatch input can
-    # never be expanded into the shell source; update_min_version is a `choice`.
-    script = script.replace("${{ github.event.inputs.update_min_version }}", update_min)
-
+    # Both dispatch inputs reach the script through the environment, as they do on a
+    # runner, so neither is ever expanded into the shell source.
     with tempfile.TemporaryDirectory() as tmp:
         d = pathlib.Path(tmp)
         (d / "readme.txt").write_text("Tested up to: 6.4\nRequires at least: 6.0\n")
@@ -100,7 +98,7 @@ def run(script: str, tested: str, update_min: str):
         if RUNNER == "host":
             cmd = ["bash", "-e", "-c", script]
             env = {"PATH": f"{stub_dir}:/usr/bin:/bin:/usr/local/bin",
-                   "TESTED_UP_TO": tested,
+                   "TESTED_UP_TO": tested, "UPDATE_MIN_VERSION": update_min,
                    "GITHUB_OUTPUT": str(out), "GITHUB_STEP_SUMMARY": str(summary)}
             proc = subprocess.run(cmd, cwd=d, capture_output=True, text=True, env=env)
         else:
@@ -108,6 +106,7 @@ def run(script: str, tested: str, update_min: str):
                 ["docker", "run", "--rm", "-v", f"{d}:/w", "-w", "/w",
                  "-e", "PATH=/w/stub-bin:/usr/bin:/bin:/usr/local/bin",
                  "-e", f"TESTED_UP_TO={tested}",
+                 "-e", f"UPDATE_MIN_VERSION={update_min}",
                  "-e", "GITHUB_OUTPUT=/w/gh_output",
                  "-e", "GITHUB_STEP_SUMMARY=/w/gh_summary",
                  "debian:stable-slim", "bash", "-e", "-c", script],
