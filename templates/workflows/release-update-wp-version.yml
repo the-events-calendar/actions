@@ -52,6 +52,7 @@ jobs:
         id: update-versions
         env:
           TESTED_UP_TO: ${{ github.event.inputs.tested_up_to }}
+          UPDATE_MIN_VERSION: ${{ github.event.inputs.update_min_version }}
         run: |
           TESTED_VERSION="$TESTED_UP_TO"
 
@@ -65,7 +66,7 @@ jobs:
           # Two minor versions behind, major.minor only. WordPress publishes no mapping
           # from x.0 back into the previous major, so refuse rather than derive one.
           MIN_VERSION=""
-          if [ "${{ github.event.inputs.update_min_version }}" = "yes" ]; then
+          if [ "$UPDATE_MIN_VERSION" = "yes" ]; then
             min_major=$((tested_parts[0]))
             min_minor=$((tested_parts[1] - 2))
             if [ "$min_minor" -lt 0 ]; then
@@ -79,7 +80,7 @@ jobs:
           echo "## Version Updates" >> $GITHUB_STEP_SUMMARY
           echo "* Tested Up To: \`$TESTED_VERSION\`" >> $GITHUB_STEP_SUMMARY
 
-          if [ "${{ github.event.inputs.update_min_version }}" = "yes" ]; then
+          if [ "$UPDATE_MIN_VERSION" = "yes" ]; then
             echo "* Minimum Required Version: \`$MIN_VERSION\`" >> $GITHUB_STEP_SUMMARY
           else
             echo "* Minimum Required Version: Unchanged" >> $GITHUB_STEP_SUMMARY
@@ -88,14 +89,14 @@ jobs:
           # Update readme.txt
           if [ -f "readme.txt" ]; then
             sed -i "s/Tested up to: [0-9.]*/Tested up to: $TESTED_VERSION/" readme.txt
-            if [ "${{ github.event.inputs.update_min_version }}" = "yes" ]; then
+            if [ "$UPDATE_MIN_VERSION" = "yes" ]; then
               sed -i "s/Requires at least: [0-9.]*/Requires at least: $MIN_VERSION/" readme.txt
             fi
             echo "* Updated \`readme.txt\`" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Update plugin.php if minimum version is being updated
-          if [ "${{ github.event.inputs.update_min_version }}" = "yes" ]; then
+          if [ "$UPDATE_MIN_VERSION" = "yes" ]; then
             # Get plugin file from .puprc versions array that is a PHP file in the base directory
             PLUGIN_FILE=$(jq -r '.paths.versions[] | select(.file | test("^[^/]+\\.php$")) | .file' .puprc)
 
@@ -106,7 +107,7 @@ jobs:
           fi
 
           # Update tests-php.yml and other workflow files if minimum version is being updated (skips self)
-          if [ "${{ github.event.inputs.update_min_version }}" = "yes" ] && [ -d ".github/workflows" ]; then
+          if [ "$UPDATE_MIN_VERSION" = "yes" ] && [ -d ".github/workflows" ]; then
             for wf in .github/workflows/*.yml; do
               [ "$(basename "$wf")" = "release-update-wp-version.yml" ] && continue
               grep -q "wp core update --force --version=" "$wf" || continue
