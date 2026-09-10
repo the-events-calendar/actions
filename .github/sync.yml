@@ -21,6 +21,12 @@ group:
       - source: templates/pull_request_template.md
         dest: .github/pull_request_template.md
 
+      # Agent guidance. AGENTS.md is the file; CLAUDE.md is a symlink to it.
+      - source: templates/AGENTS.md
+        dest: AGENTS.md
+      - source: templates/CLAUDE.md
+        dest: CLAUDE.md
+
       # Changelog Folder
       - source: templates/changelog/.gitkeep
         dest: changelog/.gitkeep
