@@ -25,19 +25,11 @@ jobs:
           # out of .git/config so those scripts cannot read it.
           persist-credentials: false
       # ------------------------------------------------------------------------------
-      # Setup Node.
+      # Setup Node. .nvmrc is synced into every repo alongside this workflow, so it
+      # is always present; a missing file is an error, not a reason to fall back to
+      # the runner default.
       # ------------------------------------------------------------------------------
-      - name: Check for .nvmrc file
-        id: check-nvmrc
-        run: |
-          if [ -f "${{ github.workspace }}/.nvmrc" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
       - uses: actions/setup-node@v4
-        if: steps.check-nvmrc.outputs.exists == 'true'
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'

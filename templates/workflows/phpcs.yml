@@ -1,5 +1,8 @@
 name: 'PHPCS'
-on: [pull_request]
+on:
+  pull_request:
+    # edited: a [skip-phpcs] marker added to or removed from the body must re-run the gate.
+    types: [opened, synchronize, reopened, edited]
 jobs:
   conditional:
     if: "!contains(github.event.pull_request.body, '[skip-phpcs]')"
@@ -29,5 +32,6 @@ jobs:
     uses: stellarwp/github-actions/.github/workflows/phpcs.yml@main
     with:
       ref: ${{ github.event.inputs.ref }}
+      change_permissions: false
     secrets:
       access-token: ${{ secrets.GH_BOT_TOKEN }}
