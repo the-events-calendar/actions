@@ -10,6 +10,13 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+# The check runs bin/check-changelog.sh from the pull request itself, so bound the
+# token it can see. Credentials stay persisted: the base-branch fetch below needs
+# them in the private repos.
+permissions:
+  contents: read
+
 jobs:
   check-changelog:
     name:    Check changelog
