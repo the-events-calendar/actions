@@ -36,8 +36,8 @@ shared store — [`the-events-calendar/plans`](https://github.com/the-events-cal
 rather than in the product repositories. A feature routinely spans several repos,
 so a spec kept in any one of them is invisible from the others.
 
-`templates/workflows/openspec-plan.yml` reports whether the ticket a pull request
-belongs to has a plan. It reads the ticket id from the branch name
+`templates/workflows/openspec-plan.yml` requires a complete, valid active plan for
+the ticket a pull request belongs to. It reads the ticket id from the branch name
 (`{type}/{task-id}/{short-desc}`), falls back to the PR title, and looks the change
 up through `.github/actions/verify-openspec-plan`.
 
@@ -45,18 +45,56 @@ What it reports:
 
 | Situation | Result |
 |---|---|
-| Plan is active in the store | passes, with a reminder to archive once every repo has merged |
-| Plan exists but is already archived | warns — a change is archived once, after the last repo merges |
-| No plan for that ticket | warns, and the summary shows the command to create one |
-| No ticket id anywhere | skips — not every branch carries a ticket |
+| Active plan has nonempty artifacts and passes strict validation | passes, with a reminder to archive once every repo has merged |
+| Plan exists but is already archived | fails — a change must remain active until the last repo merges |
+| No plan for that ticket | fails, and the summary shows the command to create one |
+| No valid ticket id | fails with guidance to add an ID to the branch, title, or action's `ticket-id` input |
+| Required artifacts are missing, blank, or invalid | fails with artifact or validation diagnostics |
+| Store or artifacts cannot be read | fails because the plan could not be verified |
 
-**It warns rather than fails.** Set `enforcement: 'block'` in the workflow to make
-a missing plan stop the merge. Do that once teams are used to the workflow, not
-before: a hard gate on day one produces empty plans written to get CI green, which
-looks like coverage and is worse than none.
+**Both the action and the synced workflow default to `enforcement: 'block'`.**
+Automated PRs also need a ticket and a plan; there is no ticketless skip. An explicit
+`ticket-id` takes precedence over the branch, which takes precedence over the title.
+IDs are normalized to lower case. Callers can explicitly select `warn` for advisory
+results; invalid enforcement values always fail. Outputs distinguish validated
+(`true`), missing (`false`), archived, invalid, and unknown results.
+
+Validation requires nonempty `proposal.md`, `design.md`, `tasks.md`, and at least
+one `specs/<capability>/spec.md` (nested capability paths are supported). The action
+downloads those files at one resolved store commit and runs OpenSpec 1.12.0 with
+`validate --type change --strict --no-interactive`. It uses the built-in
+spec-driven schema; plan metadata, custom schemas, and `skip_specs` cannot bypass
+the required artifacts. Task checkboxes can remain unchecked while implementation
+is in progress. The CLI validates spec structure; nonempty prose alone does not
+prove quality or agreement with code. Reviewers must still confirm the plan
+describes the PR.
+
+The action uses Node 24, Python 3, `gh`, and a pinned OpenSpec installation on the
+Ubuntu runner. Plan content is read as data, and telemetry is disabled. Package
+installation failures also fail the job.
+
+Changing the action default does not override existing callers that explicitly
+select `warn`. After publishing the shared change, the workflow template must land
+in each of the 16 repositories through the existing sync process. To prevent merges
+with a failing check, the repository's merge rules must require **OpenSpec Plan**.
+Editing the generated product workflows directly will be overwritten by sync.
 
 The check needs `GHA_BOT_TOKEN_MANAGER` to have read access to the `plans`
 repository, which is internal.
+
+### Testing the check
+
+Install the same validator used in CI, then run the regression suite:
+
+```bash
+npm install --prefix /tmp/tec-openspec-cli --ignore-scripts --no-audit --no-fund @fission-ai/openspec@1.12.0
+PATH="/tmp/tec-openspec-cli/node_modules/.bin:$PATH" python3 tests/test-openspec-plan.py
+```
+
+The tests execute the actual action scripts and real OpenSpec validator. GitHub
+responses are simulated to cover missing plans and API failures without changing
+remote repositories. `.github/workflows/check-templates.yml` runs these tests and
+the existing workflow lint and WordPress version arithmetic checks.
 
 The [`openspec-workflow` skill](https://github.com/stellarwp/skills-se) covers
 the workflow itself — writing a proposal worth reviewing and keeping it current —

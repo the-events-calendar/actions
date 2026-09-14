@@ -16,6 +16,7 @@ on:
     paths:
       - 'templates/workflows/**'
       - '.github/workflows/**'
+      - '.github/actions/verify-openspec-plan/**'
       - 'tests/**'
   push:
     branches:
@@ -48,3 +49,17 @@ jobs:
 
       - name: Check the WordPress version arithmetic
         run: python3 tests/test-wp-version-math.py
+
+      - name: Set up Node for OpenSpec regression tests
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Install the pinned OpenSpec validator
+        run: |
+          npm install --prefix "$RUNNER_TEMP/tec-openspec-cli" --ignore-scripts --no-audit --no-fund @fission-ai/openspec@1.12.0
+          echo "$RUNNER_TEMP/tec-openspec-cli/node_modules/.bin" >> "$GITHUB_PATH"
+
+      - name: Check OpenSpec plan enforcement
+        run: python3 tests/test-openspec-plan.py
