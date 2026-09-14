@@ -21,6 +21,9 @@ ACTION_DIR = ROOT / ".github/actions/verify-openspec-plan"
 ACTION = ACTION_DIR / "action.yml"
 REPO = "repos/the-events-calendar/plans"
 CHANGE = "openspec/changes/soft-1234"
+ARCHIVE = "openspec/changes/archive"
+BRANCH = "fix/SOFT-1234/plan-check"
+BRANCH_Q = "fix%2FSOFT-1234%2Fplan-check"
 REVISION = "a" * 40
 SPEC = """\
 ## Purpose
@@ -63,7 +66,7 @@ import json
 import os
 from pathlib import Path
 import sys
-from urllib.parse import urlsplit, parse_qs
+from urllib.parse import urlsplit, parse_qs, unquote
 
 args = sys.argv[1:]
 assert args[0] == "api", args
@@ -83,18 +86,26 @@ def fail(status):
     sys.exit(1)
 
 repo = "repos/the-events-calendar/plans"
+refs = {"HEAD", "a" * 40, *fixture["branches"]}
 if endpoint in fixture["errors"]:
     fail(fixture["errors"][endpoint])
 if endpoint == repo:
     respond({"default_branch": "main"})
-if endpoint == repo + "/commits/HEAD":
-    respond({"sha": "a" * 40})
+if endpoint.startswith(repo + "/branches/"):
+    name = unquote(endpoint[len(repo + "/branches/"):])
+    if name in fixture["branches"]:
+        respond({"name": name})
+    fail(404)
+if endpoint.startswith(repo + "/commits/"):
+    if unquote(endpoint[len(repo + "/commits/"):]) in refs:
+        respond({"sha": "a" * 40})
+    fail(422)
 prefix = repo + "/contents/"
 assert endpoint.startswith(prefix), endpoint
 path = endpoint[len(prefix):]
 query = parse_qs(url.query)
 if query:
-    assert query == {"ref": ["a" * 40]}, query
+    assert set(query) == {"ref"} and query["ref"][0] in refs, query
 
 entries = fixture["entries"]
 if path in entries:
@@ -128,15 +139,15 @@ class PlanCheckTests(unittest.TestCase):
         if result.stdout.strip() != "1.12.0":
             raise RuntimeError(f"Expected OpenSpec 1.12.0, got {result.stdout.strip()}")
 
-    def action(self, *, files=None, branch="fix/SOFT-1234/plan-check", title="Fix plan check",
-               ticket="", enforcement="block", errors=None, archived=False):
+    def action(self, *, files=None, branch=BRANCH, title="Fix plan check", ticket="", enforcement="block",
+               errors=None, archived=False, branches=()):
         entries = {f"{CHANGE}/{name}": content for name, content in (FILES if files is None else files).items()}
         if archived:
-            entries = {f"openspec/changes/archive/soft-1234/{name}": content for name, content in FILES.items()}
+            entries = {f"{ARCHIVE}/{archived}/{name}": content for name, content in FILES.items()}
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             fixture = root / "fixture.json"
-            fixture.write_text(json.dumps({"entries": entries, "errors": errors or {}}))
+            fixture.write_text(json.dumps({"entries": entries, "errors": errors or {}, "branches": list(branches)}))
             gh = root / "gh"
             gh.write_text(textwrap.dedent(GH_STUB))
             gh.chmod(0o755)
@@ -249,11 +260,39 @@ class PlanCheckTests(unittest.TestCase):
         self.assert_rejected(self.action(files={}), "false")
 
     def test_archived_plan_fails(self):
-        self.assert_rejected(self.action(archived=True), "archived")
+        # `openspec archive` writes archive/YYYY-MM-DD-<change>; a plan moved by hand keeps its bare name.
+        for name in ("2026-09-14-soft-1234", "soft-1234"):
+            with self.subTest(name=name):
+                self.assert_rejected(self.action(archived=name), "archived")
+
+    def test_archive_of_another_ticket_is_not_a_match(self):
+        self.assert_rejected(self.action(archived="2026-09-14-soft-12345"), "false")
 
     def test_archive_api_failure_is_unknown(self):
-        result = self.action(files={}, errors={f"{REPO}/contents/openspec/changes/archive/soft-1234": 500})
+        result = self.action(files={}, errors={f"{REPO}/contents/{ARCHIVE}": 500})
         self.assert_rejected(result, "unknown")
+
+    def test_plan_on_matching_branch_is_preferred(self):
+        proc, outputs, summary, calls = self.action(branches=(BRANCH,))
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(outputs["plan_found"], "true")
+        self.assertIn(f"{REPO}/branches/{BRANCH_Q}", calls)
+        self.assertIn(f"{REPO}/contents/{CHANGE}?ref={BRANCH_Q}", calls)
+        self.assertIn(f"{REPO}/commits/{BRANCH_Q}", calls)
+        self.assertNotIn("?ref=HEAD", calls)
+        self.assertIn(BRANCH, summary)
+
+    def test_missing_branch_falls_back_to_default(self):
+        proc, outputs, _, calls = self.action()
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(outputs["plan_found"], "true")
+        self.assertIn(f"{REPO}/branches/{BRANCH_Q}", calls)
+        self.assertIn(f"{REPO}/contents/{CHANGE}?ref=HEAD", calls)
+        self.assertIn(f"{REPO}/commits/HEAD", calls)
+        self.assertNotIn(f"?ref={BRANCH_Q}", calls)
+
+    def test_branch_probe_failure_is_unknown(self):
+        self.assert_rejected(self.action(errors={f"{REPO}/branches/{BRANCH_Q}": 500}), "unknown")
 
     def test_unreadable_store_fails(self):
         for status in (401, 403, 404, 429, 500):
@@ -270,7 +309,7 @@ class PlanCheckTests(unittest.TestCase):
         self.assert_rejected(self.action(errors={f"{REPO}/commits/HEAD": 500}), "unknown")
 
     def test_warn_mode_preserves_failure_outcomes(self):
-        for kwargs, state in (({"files": {}}, "false"), ({"archived": True}, "archived"),
+        for kwargs, state in (({"files": {}}, "false"), ({"archived": "2026-09-14-soft-1234"}, "archived"),
                               ({"errors": {REPO: 403}}, "unknown")):
             with self.subTest(state=state):
                 proc, outputs, _, _ = self.action(enforcement="warn", **kwargs)

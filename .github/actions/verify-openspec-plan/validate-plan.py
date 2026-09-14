@@ -52,8 +52,9 @@ def content_file(entry, name):
     return content
 
 
-def download_plan(repo, ticket, destination):
-    commit = api(f"repos/{repo}/commits/HEAD")
+def download_plan(repo, ticket, ref, destination):
+    # ref is already URL-encoded by the action; a branch name may carry slashes.
+    commit = api(f"repos/{repo}/commits/{ref}")
     revision = commit.get("sha", "") if isinstance(commit, dict) else ""
     if not re.fullmatch(r"[a-f0-9]{40}", revision):
         raise CannotVerify("GitHub did not return a valid store revision.")
@@ -111,7 +112,7 @@ def report(title, detail):
 
 
 def main():
-    repo, ticket = sys.argv[1:]
+    repo, ticket, ref = sys.argv[1:]
     try:
         with tempfile.TemporaryDirectory(prefix="tec-openspec-") as tmp:
             root = Path(tmp)
@@ -121,7 +122,7 @@ def main():
             (root / "openspec/config.yaml").write_text("schema: spec-driven\n", encoding="utf-8")
             # Only the required Markdown is downloaded. Store metadata and custom
             # schemas cannot weaken the gate or cause repository code to execute.
-            download_plan(repo, ticket, change)
+            download_plan(repo, ticket, ref, change)
             result = subprocess.run(
                 ["openspec", "validate", ticket, "--type", "change", "--strict", "--no-interactive"],
                 cwd=root, capture_output=True, text=True, timeout=120,

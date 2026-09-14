@@ -39,7 +39,9 @@ so a spec kept in any one of them is invisible from the others.
 `templates/workflows/openspec-plan.yml` requires a complete, valid active plan for
 the ticket a pull request belongs to. It reads the ticket id from the branch name
 (`{type}/{task-id}/{short-desc}`), falls back to the PR title, and looks the change
-up through `.github/actions/verify-openspec-plan`.
+up through `.github/actions/verify-openspec-plan`. The store is read from a branch
+named like the PR branch when one exists there, so a plan still being written can
+be checked before it merges; otherwise the store's default branch is used.
 
 What it reports:
 
