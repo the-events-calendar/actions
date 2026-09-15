@@ -1,5 +1,5 @@
 name: 'Verify OpenSpec Plan'
-description: 'Verifies that the pull request has a plan in the shared OpenSpec store, and that the plan is still active.'
+description: 'Requires a ticket and a complete, valid active plan in the shared OpenSpec store.'
 
 inputs:
   github-token:
@@ -16,19 +16,31 @@ inputs:
   enforcement:
     description: 'warn (annotate and pass) or block (fail the check).'
     required: false
-    default: 'warn'
+    default: 'block'
 
 outputs:
   ticket_id:
     description: 'The ticket id that was looked up, empty when none was found.'
     value: ${{ steps.resolve.outputs.ticket_id }}
   plan_found:
-    description: 'Whether an active plan was found (true/false/archived/skipped/unknown).'
+    description: 'Plan verification result (true/false/archived/invalid/unknown).'
     value: ${{ steps.verify.outputs.plan_found }}
 
 runs:
   using: "composite"
   steps:
+    - name: Set up Node for OpenSpec
+      uses: actions/setup-node@v6
+      with:
+        node-version: '24'
+        package-manager-cache: false
+
+    - name: Install the pinned OpenSpec validator
+      shell: bash
+      run: |
+        npm install --prefix "$RUNNER_TEMP/tec-openspec-cli" --ignore-scripts --no-audit --no-fund @fission-ai/openspec@1.12.0
+        echo "$RUNNER_TEMP/tec-openspec-cli/node_modules/.bin" >> "$GITHUB_PATH"
+
     # ------------------------------------------------------------------------------
     # Work out which ticket this pull request belongs to.
     #
@@ -54,8 +66,8 @@ runs:
         echo "ticket_id=$ticket" >> "$GITHUB_OUTPUT"
 
     # ------------------------------------------------------------------------------
-    # Look the plan up in the store. The contents API is enough to tell an active
-    # change from an archived one, so there is no need to clone the plans repo.
+    # Look the plan up, then download its artifacts as data for validation.
+    # Nothing from the pull request or the plans repository is executed.
     # ------------------------------------------------------------------------------
     - name: Verify the plan exists
       id: verify
@@ -64,11 +76,27 @@ runs:
         GH_TOKEN: ${{ inputs.github-token }}
         PLANS_REPO: ${{ inputs.plans-repo }}
         TICKET: ${{ steps.resolve.outputs.ticket_id }}
+        HEAD_REF: ${{ github.head_ref }}
         ENFORCEMENT: ${{ inputs.enforcement }}
+        OPENSPEC_TELEMETRY: '0'
+        DO_NOT_TRACK: '1'
       run: |
         set -uo pipefail
 
         summary() { echo "$1" >> "$GITHUB_STEP_SUMMARY"; }
+
+        annotation=warning
+        [ "$ENFORCEMENT" = "block" ] && annotation=error
+        case "$ENFORCEMENT" in
+          block|warn) ;;
+          *)
+            echo "::error title=OpenSpec::Invalid enforcement value. Use block or warn."
+            summary "## OpenSpec plan: invalid enforcement setting"
+            summary "Set enforcement to block (required) or warn (advisory)."
+            echo "plan_found=invalid" >> "$GITHUB_OUTPUT"
+            exit 1
+            ;;
+        esac
 
         howto() {
           summary ""
@@ -83,29 +111,34 @@ runs:
           summary "<https://github.com/stellarwp/skills-se>"
         }
 
-        if [ -z "$TICKET" ]; then
-          echo "::notice title=OpenSpec::No ticket id in the branch name or PR title, skipping the plan check."
-          summary "## OpenSpec plan: skipped"
+        if [[ ! "$TICKET" =~ ^[a-z][a-z0-9]+-[0-9]+$ ]]; then
+          echo "::$annotation title=OpenSpec::A valid ticket id is required to verify the plan."
+          summary "## OpenSpec plan: missing or invalid ticket id"
           summary ""
-          summary "No ticket id found in the branch name or the PR title, so there is nothing to look up."
-          summary "Branches carrying a ticket look like \`feat/SOFT-1234/short-desc\`."
-          echo "plan_found=skipped" >> "$GITHUB_OUTPUT"
+          summary "Include a ticket id such as SOFT-1234 in the branch name or PR title, or provide the action's ticket-id input."
+          summary "This applies to automated PRs too. Branches carrying a ticket look like \`feat/SOFT-1234/short-desc\`."
+          echo "plan_found=invalid" >> "$GITHUB_OUTPUT"
+          [ "$ENFORCEMENT" = "block" ] && exit 1
           exit 0
         fi
 
         active_path="openspec/changes/${TICKET}"
-        archive_path="openspec/changes/archive/${TICKET}"
+        archive_path="openspec/changes/archive"
 
         # gh exits 1 for every failure, so a missing plan, a bad token, a rate
         # limit and a 500 all look alike. The status is only in the message, so
         # read that: 404 means absent, anything else is a problem to report
-        # rather than a plan to declare missing.
+        # rather than a plan to declare missing. An optional jq filter narrows
+        # a listing: no match is reported as 404 too.
         api_probe() {
-          local err
-          if err=$(gh api "$1" --silent 2>&1); then echo "ok"; return 0; fi
-          case "$err" in
+          local out
+          if out=$(gh api "$1" 2>&1); then
+            if [ -n "${2:-}" ] && [ -z "$(printf '%s' "$out" | jq -r "$2")" ]; then echo "404"; else echo "ok"; fi
+            return 0
+          fi
+          case "$out" in
             *"(HTTP 404)"*) echo "404" ;;
-            *)              printf 'error\t%s' "$(printf '%s' "$err" | head -1)" ;;
+            *)              printf 'error\t%s' "$(printf '%s' "$out" | head -1)" ;;
           esac
         }
 
@@ -114,7 +147,7 @@ runs:
         # itself is probed first.
         repo_probe=$(api_probe "repos/${PLANS_REPO}")
         if [ "$repo_probe" != "ok" ]; then
-          echo "::warning title=OpenSpec::Cannot read ${PLANS_REPO}, so no plan could be verified."
+          echo "::$annotation title=OpenSpec::Cannot read ${PLANS_REPO}, so no plan could be verified."
           summary "## OpenSpec plan: could not be checked"
           summary ""
           summary "The check could not read [\`${PLANS_REPO}\`](https://github.com/${PLANS_REPO}), so this says nothing about whether a plan exists."
@@ -129,10 +162,35 @@ runs:
           exit 0
         fi
 
-        active_probe=$(api_probe "repos/${PLANS_REPO}/contents/${active_path}")
+        # A plan still being written lives on a branch in the store named after
+        # the PR branch. Prefer that; fall back to the store's default branch.
+        # Branch names carry slashes, so they are URL-encoded wherever they go.
+        ref=HEAD
+        ref_note="the default branch"
+        if [ -n "$HEAD_REF" ]; then
+          branch_q=$(jq -rn --arg s "$HEAD_REF" '$s|@uri')
+          branch_probe=$(api_probe "repos/${PLANS_REPO}/branches/${branch_q}")
+          case "$branch_probe" in
+            ok) ref="$branch_q"; ref_note="branch \`${HEAD_REF}\`" ;;
+            404) ;;
+            *)
+              echo "::$annotation title=OpenSpec::Looking up branch ${HEAD_REF} in ${PLANS_REPO} failed, so no plan could be verified."
+              summary "## OpenSpec plan: could not be checked"
+              summary ""
+              summary "Looking up the plans branch failed: \`$(printf '%s' "$branch_probe" | cut -f2-)\`"
+              summary ""
+              summary "This says nothing about whether a plan exists."
+              echo "plan_found=unknown" >> "$GITHUB_OUTPUT"
+              [ "$ENFORCEMENT" = "block" ] && exit 1
+              exit 0
+              ;;
+          esac
+        fi
+
+        active_probe=$(api_probe "repos/${PLANS_REPO}/contents/${active_path}?ref=${ref}")
         case "$active_probe" in
           error*)
-            echo "::warning title=OpenSpec::Looking up ${TICKET} failed, so no plan could be verified."
+            echo "::$annotation title=OpenSpec::Looking up ${TICKET} failed, so no plan could be verified."
             summary "## OpenSpec plan: could not be checked"
             summary ""
             summary "Looking up \`${TICKET}\` failed: \`$(printf '%s' "$active_probe" | cut -f2-)\`"
@@ -145,10 +203,23 @@ runs:
         esac
 
         if [ "$active_probe" = "ok" ]; then
-          echo "::notice title=OpenSpec::Plan ${TICKET} found in ${PLANS_REPO}."
-          summary "## OpenSpec plan: found"
+          if python3 "$GITHUB_ACTION_PATH/validate-plan.py" "$PLANS_REPO" "$TICKET" "$ref"; then
+            validation_status=0
+          else
+            validation_status=$?
+          fi
+          if [ "$validation_status" -ne 0 ]; then
+            result=invalid
+            [ "$validation_status" -eq 2 ] && result=unknown
+            echo "::$annotation title=OpenSpec::Plan ${TICKET} could not be validated. See the job summary for details."
+            echo "plan_found=$result" >> "$GITHUB_OUTPUT"
+            [ "$ENFORCEMENT" = "block" ] && exit 1
+            exit 0
+          fi
+          echo "::notice title=OpenSpec::Plan ${TICKET} is complete and valid in ${PLANS_REPO}."
+          summary "## OpenSpec plan: validated"
           summary ""
-          summary "[\`${TICKET}\`](https://github.com/${PLANS_REPO}/tree/HEAD/${active_path}) is active in the store."
+          summary "[\`${TICKET}\`](https://github.com/${PLANS_REPO}/tree/${ref}/${active_path}) is active in the store, on ${ref_note}."
           summary ""
           summary "Before merging, confirm the plan still describes what this PR actually does."
           summary "When the work has landed in **every** repository it touches, archive it once:"
@@ -159,9 +230,22 @@ runs:
           exit 0
         fi
 
-        archive_probe=$(api_probe "repos/${PLANS_REPO}/contents/${archive_path}")
+        # `openspec archive` names the folder YYYY-MM-DD-<change>; a plan moved by
+        # hand keeps its bare name. TICKET is validated above, so it is safe in a regex.
+        archive_probe=$(api_probe "repos/${PLANS_REPO}/contents/${archive_path}?ref=${ref}" \
+          "if type==\"array\" then .[] | select(.type==\"dir\") | .name | select(test(\"^([0-9]{4}-[0-9]{2}-[0-9]{2}-)?${TICKET}\$\")) else empty end")
+        case "$archive_probe" in
+          error*)
+            echo "::$annotation title=OpenSpec::The archive could not be checked for ${TICKET}."
+            summary "## OpenSpec plan: could not be checked"
+            summary "The archive lookup failed; retry the check when the GitHub API is available."
+            echo "plan_found=unknown" >> "$GITHUB_OUTPUT"
+            [ "$ENFORCEMENT" = "block" ] && exit 1
+            exit 0
+            ;;
+        esac
         if [ "$archive_probe" = "ok" ]; then
-          echo "::warning title=OpenSpec::Plan ${TICKET} is already archived while this PR is still open."
+          echo "::$annotation title=OpenSpec::Plan ${TICKET} is already archived while this PR is still open."
           summary "## OpenSpec plan: archived early"
           summary ""
           summary "\`${TICKET}\` exists but has already been archived, while this pull request is still open."
@@ -172,10 +256,10 @@ runs:
           exit 0
         fi
 
-        echo "::warning title=OpenSpec::No plan found for ${TICKET} in ${PLANS_REPO}."
+        echo "::$annotation title=OpenSpec::No plan found for ${TICKET} in ${PLANS_REPO}."
         summary "## OpenSpec plan: missing"
         summary ""
-        summary "No change named \`${TICKET}\` exists in [\`${PLANS_REPO}\`](https://github.com/${PLANS_REPO})."
+        summary "No change named \`${TICKET}\` exists in [\`${PLANS_REPO}\`](https://github.com/${PLANS_REPO}) on ${ref_note}."
         summary "Work on TEC products is planned before it is written."
         howto
         echo "plan_found=false" >> "$GITHUB_OUTPUT"
