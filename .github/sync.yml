@@ -21,11 +21,12 @@ group:
       - source: templates/pull_request_template.md
         dest: .github/pull_request_template.md
 
-      # Agent guidance. AGENTS.md is the file; CLAUDE.md is a symlink to it.
+      # Agent guidance. AGENTS.md is the file; CLAUDE.md is a symlink to it in
+      # every target repo, seeded once by hand and never synced: the sync action
+      # cannot copy a symlink over an identical one (fs-extra rejects it), so
+      # listing templates/CLAUDE.md here fails every run after the first.
       - source: templates/AGENTS.md
         dest: AGENTS.md
-      - source: templates/CLAUDE.md
-        dest: CLAUDE.md
 
       # Changelog Folder
       - source: templates/changelog/.gitkeep
