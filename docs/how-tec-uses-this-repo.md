@@ -1,34 +1,8 @@
-# How The Events Calendar uses this repository
-
-This page explains what this repository does for The Events Calendar (TEC) team, which files it pushes into our product repositories, and what each shared workflow and action is for. It is written for people who have no TEC background and want to understand, or borrow, the setup.
-
-- [How The Events Calendar uses this repository](#how-the-events-calendar-uses-this-repository)
-    - [Why this repository exists](#why-this-repository-exists)
-    - [The two things this repository does](#the-two-things-this-repository-does)
-    - [How file sync works](#how-file-sync-works)
-        - [Sync groups](#sync-groups)
-        - [What a sync run looks like from a product repo](#what-a-sync-run-looks-like-from-a-product-repo)
-    - [Files we sync](#files-we-sync)
-        - [Editor and tooling config](#editor-and-tooling-config)
-        - [GitHub files](#github-files)
-        - [Changelog tooling](#changelog-tooling)
-    - [Workflows we sync](#workflows-we-sync)
-        - [Pull request checks](#pull-request-checks)
-        - [Release workflows](#release-workflows)
-        - [Skip markers](#skip-markers)
-    - [Composite actions](#composite-actions)
-    - [A release, start to finish](#a-release-start-to-finish)
-    - [What a product repo needs before it can be synced](#what-a-product-repo-needs-before-it-can-be-synced)
-    - [How this repository checks itself](#how-this-repository-checks-itself)
-    - [Things that catch people out](#things-that-catch-people-out)
-    - [Which parts are TEC policy and which are reusable](#which-parts-are-tec-policy-and-which-are-reusable)
-    - [Related repositories](#related-repositories)
-
-## Why this repository exists
+## What is the Actions repository?
 
 TEC maintains eight WordPress plugins that share a common library (`tribe-common`), plus a handful of services. Before this repository, each product repo carried its own copies of the CI workflows and config files, and anything that had to run across several repos lived in an internal Jenkins server. Fixing a workflow meant fixing it eight times, and nobody had a full picture of what ran where.
 
-This repository holds one copy of every shared file and pushes it into the product repos automatically. Jenkins is being retired in favour of GitHub Actions for everything.
+This repository holds one copy of every shared file and pushes it into the product repos automatically. Jenkins was retired in favour of GitHub Actions for everything.
 
 ## The two things this repository does
 
@@ -150,20 +124,6 @@ These live in `.github/actions/` and are called from the workflows above. Produc
 | `smart-checkout` | Test workflows in product repos | Checks out a second repository on the same branch as the PR if it exists there, falling back to the base branch, then the default branch. Used to pull `tribe-common` or another plugin at a matching branch |
 | `verify-openspec-plan` | `openspec-plan.yml` | Works out the ticket ID from the branch name or PR title, then checks the shared plans repository for a complete, valid, unarchived plan |
 
-## A release, start to finish
-
-The release workflows are meant to be run in this order on each plugin being released.
-
-1. Run **Release: Prepare Branch** from `main`. Give it the release branch name (TEC names them `release/T25.<codename>`) and the bump type. Merge the version-bump PR it opens.
-2. Development PRs land on the release branch. Each one carries a changelog YAML file, which `changelogger.yml` enforces.
-3. Run **Release: Replace TBD Entries** on the release branch and merge the PR.
-4. Run **Release: Sync Translations** on the release branch and merge the PR.
-5. Run **Release: Process Changelogs** on the release branch with the release date. Merge the PR. Run it again with `amend` if more entries land afterwards.
-6. Run **Release: Update WordPress Version** whenever a new WordPress release changes the tested-up-to value. This one is independent of the release cycle.
-7. After shipping, run **Release: Merge Forward** from the release branch into `main`, and merge the PR.
-
-Packaging the zip and publishing are not handled by this repository.
-
 ## What a product repo needs before it can be synced
 
 The synced workflows assume a few things about the target repository. Missing any of these produces a failing run rather than a helpful error.
@@ -187,7 +147,7 @@ The synced workflows assume a few things about the target repository. Missing an
 
 A broken template reaches eight repos before anyone notices, so this check is the last line of defence.
 
-## Things that catch people out
+## Some "Gotchas"
 
 - A failed sync run is silent from the product repo's point of view. If a group fails, none of its repos get a PR, and nothing tells them. Check the Actions tab in this repository if a change seems not to have arrived.
 - One bad file fails the whole group. The symlink problem with `CLAUDE.md` stopped every plugin sync until it was removed from the config.
