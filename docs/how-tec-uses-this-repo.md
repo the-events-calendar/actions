@@ -14,11 +14,9 @@ One thing that trips people up: nothing in `templates/` actually runs here. Thos
 
 ## How file sync works
 
-You'll meet this the first time you change a template and wonder how it gets anywhere.
-
 We use [BetaHuhn/repo-file-sync-action](https://github.com/marketplace/actions/repo-file-sync-action). The configuration is `.github/sync.yml`, and the workflow that runs it is `.github/workflows/sync.yml`.
 
-The sync runs on every push to `main` that touches `templates/**`, `.github/sync.yml`, or the sync workflow itself. You can also kick it off by hand from the Actions tab. For each target repo it checks out the code, copies the listed files to their destination paths, and opens a pull request titled `🔄 synced file(s) with the-events-calendar/actions` as the `tec-bot` user. Someone on the product team reviews and merges that PR like any other.
+The sync runs on every push to `main` that touches `templates/**`, `.github/sync.yml`, or the sync workflow itself. You can also kick it off by hand from the Actions tab. For each target repo it checks out the code, copies the listed files to their destination paths, and opens a pull request titled `🔄 synced file(s) with the-events-calendar/actions` as the `tec-bot` user. Someone on the product team reviews and merges that PR like any other. This increases our team productivity by allowing one person to complete these actions instead of waiting for another team member to approve the PR before being able to merge.
 
 The PR body carries `[skip-changelog]`, because a synced file never needs a changelog entry. More on that under [Skip markers](#skip-markers).
 
@@ -102,7 +100,7 @@ These run on every pull request and are what a developer sees most often.
 
 ### Release workflows
 
-These only matter when you're cutting a release. They're all started by hand from the Actions tab, and they run in roughly this order: prepare the branch, replace the TBDs, sync translations, process the changelog, and after shipping, merge forward.
+These only matter when you're owning a release. They're all started by hand from the Actions tab, and they run in roughly this order: prepare the branch, replace the TBDs, sync translations, process the changelog, and after shipping, merge forward.
 
 Each one creates a branch, makes its change, and opens a `[BOT]` pull request for a human to merge. None of them push straight to a release branch, so there's always a diff to look at before anything lands.
 
