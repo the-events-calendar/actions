@@ -29,6 +29,37 @@ service would only give its developers instructions that do not apply.
 | Promoter | `promoter` | the PR template and project linking |
 | OpenSpec plan check | every active product, 16 repos | one workflow, nothing stack specific |
 
+## WordPress test matrix
+
+`.github/actions/wp-test-matrix` returns the three most recent WordPress X.Y
+releases from the wordpress.org version-check API, newest first, as a JSON array
+(for example `["7.1","7.0.4","6.9.7"]`). Test workflows feed it into their matrix:
+
+```yaml
+jobs:
+  wp-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.matrix.outputs.versions }}
+    steps:
+      - id: matrix
+        uses: the-events-calendar/actions/.github/actions/wp-test-matrix@main
+
+  test:
+    needs: wp-versions
+    name: ${{ matrix.suite }} (WP ${{ matrix.wp }})
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [ unit, wpunit ]
+        wp: ${{ fromJSON(needs.wp-versions.outputs.versions) }}
+    steps:
+      - run: ${SLIC_BIN} wp core update --force --version=${{ matrix.wp }}
+```
+
+Because the version under test comes from the matrix, `release-update-wp-version.yml`
+no longer rewrites any `wp core update` line in the test workflows.
+
 ## OpenSpec plan check
 
 Work on TEC products is planned before it is written, and the plan lives in one
