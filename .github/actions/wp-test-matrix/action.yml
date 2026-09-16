@@ -27,7 +27,7 @@ runs:
       env:
         COUNT: ${{ inputs.count }}
       run: |
-        versions=$(curl -sSf --retry 3 https://api.wordpress.org/core/version-check/1.7/ \
+        versions=$(curl -sSf --retry 3 --connect-timeout 10 --max-time 30 https://api.wordpress.org/core/version-check/1.7/ \
           | jq -c --argjson count "$COUNT" '
               [ .offers[].version ]
               | unique_by( split(".")[:2] )
