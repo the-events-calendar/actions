@@ -31,11 +31,18 @@ service would only give its developers instructions that do not apply.
 
 ## WordPress test matrix
 
-`.github/actions/wp-test-matrix` returns the three most recent WordPress X.Y
-releases from the wordpress.org version-check API, newest first, as a JSON array
-(for example `["7.1","7.0.4","6.9.7"]`). Test workflows feed it into their matrix:
+`.github/actions/wp-test-matrix` returns the most recent WordPress X.Y releases
+from the wordpress.org version-check API, newest first, as a JSON array (for
+example `["7.1","7.0.4","6.9.7"]`). Pull requests test the latest release only;
+pushes to `main` and `release/**` test the latest three. Test workflows feed it
+into their matrix:
 
 ```yaml
+on:
+  pull_request:
+  push:
+    branches: [ main, 'release/**' ]
+
 jobs:
   wp-versions:
     runs-on: ubuntu-latest
@@ -44,9 +51,12 @@ jobs:
     steps:
       - id: matrix
         uses: the-events-calendar/actions/.github/actions/wp-test-matrix@main
+        with:
+          count: ${{ github.event_name == 'pull_request' && 1 || 3 }}
 
   test:
     needs: wp-versions
+    runs-on: ubuntu-latest
     name: ${{ matrix.suite }} (WP ${{ matrix.wp }})
     strategy:
       fail-fast: false

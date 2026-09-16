@@ -3,7 +3,7 @@ description: 'Lists the three most recent WordPress X.Y releases (latest, latest
 
 inputs:
   count:
-    description: 'How many X.Y releases to return, newest first'
+    description: 'How many X.Y releases to return, newest first. Use 1 on pull requests and 3 on pushes to main and release branches.'
     required: false
     default: '3'
 
