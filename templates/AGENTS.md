@@ -143,6 +143,11 @@ lands in every product at once, so check callers in both TEC and ET.
 - When a change spans repositories, say so rather than fixing one and leaving
   the siblings broken. Fix at the owner, then check the extenders: ET then ETP,
   TEC then ECP.
+- PHP tests on a feature PR run against the latest WordPress only. The release
+  sanity check PR (`release/*` into `main`) runs the latest three, so a suite
+  that passed on every feature PR can still fail there on an older WordPress.
+  The job name carries the version, e.g. `wpunit (WP 6.9.7)`. Treat that as a
+  release blocker to fix on the release branch, not a flaky test.
 
 ## For reviewers
 

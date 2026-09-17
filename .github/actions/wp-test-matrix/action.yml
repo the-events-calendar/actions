@@ -1,0 +1,46 @@
+name: 'WordPress Test Matrix'
+description: 'Lists the three most recent WordPress X.Y releases (latest, latest-1, latest-2) so test workflows can run against them without a hardcoded version'
+
+inputs:
+  count:
+    description: 'How many X.Y releases to return, newest first. Use 3 on the release sanity check PR (head branch release/*) and 1 on every other PR.'
+    required: false
+    default: '3'
+
+outputs:
+  versions:
+    description: 'JSON array of full versions, newest first, e.g. ["7.1","7.0.4","6.9.7"]. Use with fromJSON() in strategy.matrix.'
+    value: ${{ steps.versions.outputs.value }}
+
+runs:
+  using: "composite"
+  steps:
+    # ------------------------------------------------------------------------------
+    # The version-check API lists the newest patch of every supported X.Y branch,
+    # so the newest entry per X.Y is the version to test. Full patch versions are
+    # returned (not just X.Y) so `wp core update --version=` gets an exact release
+    # and the job name shows exactly what ran.
+    # ------------------------------------------------------------------------------
+    - name: Fetch the latest WordPress releases
+      id: versions
+      shell: bash
+      env:
+        COUNT: ${{ inputs.count }}
+      run: |
+        versions=$(curl -sSf --retry 3 --connect-timeout 10 --max-time 30 https://api.wordpress.org/core/version-check/1.7/ \
+          | jq -c --argjson count "$COUNT" '
+              [ .offers[].version ]
+              | group_by( split(".")[:2] )
+              | map( max_by( split(".") | map(tonumber) ) )
+              | sort_by( split(".") | map(tonumber) )
+              | reverse
+              | .[:$count]
+            ')
+
+        if [ "$(jq 'length' <<< "$versions")" -ne "$COUNT" ]; then
+          echo "::error::Expected $COUNT WordPress versions from api.wordpress.org, got: $versions"
+          exit 1
+        fi
+
+        echo "value=$versions" >> "$GITHUB_OUTPUT"
+        echo "## WordPress test matrix: \`$versions\`" >> "$GITHUB_STEP_SUMMARY"
