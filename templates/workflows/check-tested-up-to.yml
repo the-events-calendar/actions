@@ -1,0 +1,41 @@
+name: Check tested up to
+
+# ------------------------------------------------------------------------------
+# The header goes stale with the passage of time rather than when readme.txt is
+# edited, so there is deliberately no paths filter here: a release pull request
+# that touches nothing else is exactly the one this has to catch.
+#
+# The logic lives in bin/check-tested-up-to.php, registered in .puprc, so that the
+# same check also runs on a production zip build through `pup check` in zip.yml.
+# ------------------------------------------------------------------------------
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+      - 'release/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check-tested-up-to:
+    name: Check tested up to
+    runs-on: ubuntu-latest
+    steps:
+      # The check runs from the pull request itself, so it gets no credentials and
+      # nothing is written into .git/config.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      # composer -- pup downloads the pinned phar into bin/; it needs no vendor
+      # install, which is why zip.yml does the same with no install step before it.
+      - name: Check the "Tested up to" header
+        run: composer -- pup check:tested-up-to-is-up-to-date
