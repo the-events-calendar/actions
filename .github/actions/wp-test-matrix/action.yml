@@ -30,7 +30,8 @@ runs:
         versions=$(curl -sSf --retry 3 --connect-timeout 10 --max-time 30 https://api.wordpress.org/core/version-check/1.7/ \
           | jq -c --argjson count "$COUNT" '
               [ .offers[].version ]
-              | unique_by( split(".")[:2] )
+              | group_by( split(".")[:2] )
+              | map( max_by( split(".") | map(tonumber) ) )
               | sort_by( split(".") | map(tonumber) )
               | reverse
               | .[:$count]
