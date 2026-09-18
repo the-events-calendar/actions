@@ -3,7 +3,7 @@ description: 'Lists the three most recent WordPress X.Y releases (latest, latest
 
 inputs:
   count:
-    description: 'How many X.Y releases to return, newest first. Use 3 on the release sanity check PR (head branch release/*) and 1 on every other PR.'
+    description: 'How many X.Y releases to return, newest first. Every PR runs the full three; lower it only to trade coverage for runner minutes.'
     required: false
     default: '3'
 

@@ -54,9 +54,18 @@ runs:
       env:
         HEAD_REF: ${{ github.head_ref }}
         PR_TITLE: ${{ github.event.pull_request.title }}
+        PR_BODY: ${{ github.event.pull_request.body }}
         TICKET_INPUT: ${{ inputs.ticket-id }}
       run: |
         ticket="$TICKET_INPUT"
+        # The PR template's "Plan" section names the change explicitly. It wins over
+        # the branch because a child ticket's branch (SOFT-4410) can implement the
+        # parent's plan (soft-4409); the template placeholder [CHANGE_ID] is ignored.
+        if [ -z "$ticket" ]; then
+          ticket=$(printf '%s' "$PR_BODY" | tr -d '\r' \
+            | awk '/^###[[:space:]]/{ in_plan = ($0 ~ /Plan/) } in_plan' \
+            | grep -oE '[A-Za-z][A-Za-z0-9]+-[0-9]+' | head -1 || true)
+        fi
         [ -z "$ticket" ] && ticket=$(printf '%s' "$HEAD_REF" | grep -oE '[A-Za-z][A-Za-z0-9]+-[0-9]+' | head -1 || true)
         [ -z "$ticket" ] && ticket=$(printf '%s' "$PR_TITLE"  | grep -oE '[A-Za-z][A-Za-z0-9]+-[0-9]+' | head -1 || true)
         # Branches and tickets are upper case (SOFT-1234); OpenSpec change names
@@ -115,7 +124,7 @@ runs:
           echo "::$annotation title=OpenSpec::A valid ticket id is required to verify the plan."
           summary "## OpenSpec plan: missing or invalid ticket id"
           summary ""
-          summary "Include a ticket id such as SOFT-1234 in the branch name or PR title, or provide the action's ticket-id input."
+          summary "Name the change in the PR body's Plan section, or include a ticket id such as SOFT-1234 in the branch name or PR title, or provide the action's ticket-id input."
           summary "This applies to automated PRs too. Branches carrying a ticket look like \`feat/SOFT-1234/short-desc\`."
           echo "plan_found=invalid" >> "$GITHUB_OUTPUT"
           [ "$ENFORCEMENT" = "block" ] && exit 1
