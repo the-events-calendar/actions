@@ -48,7 +48,7 @@ def extract_run_block() -> str:
 
 
 def bash_runner():
-    """The workflow runs on ubuntu-latest, so the script needs GNU sed.
+    """The workflow runs on blacksmith-4vcpu-ubuntu-2404, so the script needs GNU sed.
 
     Fall back to a container where the host has none, rather than asserting less.
     """
