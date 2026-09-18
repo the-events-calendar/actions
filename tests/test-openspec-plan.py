@@ -139,7 +139,7 @@ class PlanCheckTests(unittest.TestCase):
         if result.stdout.strip() != "1.12.0":
             raise RuntimeError(f"Expected OpenSpec 1.12.0, got {result.stdout.strip()}")
 
-    def action(self, *, files=None, branch=BRANCH, title="Fix plan check", ticket="", enforcement="block",
+    def action(self, *, files=None, branch=BRANCH, title="Fix plan check", ticket="", body="", enforcement="block",
                errors=None, archived=False, branches=()):
         entries = {f"{CHANGE}/{name}": content for name, content in (FILES if files is None else files).items()}
         if archived:
@@ -157,7 +157,7 @@ class PlanCheckTests(unittest.TestCase):
             env = os.environ | {
                 "PATH": f"{root}:{os.environ['PATH']}",
                 "GH_FIXTURE": str(fixture), "GH_CALLS": str(calls),
-                "HEAD_REF": branch, "PR_TITLE": title, "TICKET_INPUT": ticket,
+                "HEAD_REF": branch, "PR_TITLE": title, "PR_BODY": body, "TICKET_INPUT": ticket,
                 "ENFORCEMENT": enforcement, "PLANS_REPO": "the-events-calendar/plans",
                 "GITHUB_OUTPUT": str(output), "GITHUB_STEP_SUMMARY": str(summary),
                 "GITHUB_ACTION_PATH": str(ACTION_DIR), "RUNNER_TEMP": str(root),
@@ -211,6 +211,32 @@ class PlanCheckTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         self.assertEqual(outputs["ticket_id"], "soft-1234")
         self.assertEqual(outputs["plan_found"], "true")
+
+    def test_plan_section_precedes_branch(self):
+        """A child ticket's branch implements the parent's plan named in the PR body."""
+        body = "### 🎫 Ticket\n\n[SOFT-4410]\n\n### 📋 Plan\n\n[SOFT-1234]\n\n### 🗒️ Description\n\nSee SOFT-9999.\n"
+        proc, outputs, _, _ = self.action(branch="feat/SOFT-4410/child", body=body)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(outputs["ticket_id"], "soft-1234")
+        self.assertEqual(outputs["plan_found"], "true")
+
+    def test_plan_section_placeholder_falls_back_to_branch(self):
+        body = "### 🎫 Ticket\n\n[SOFT-9999]\n\n### 📋 Plan\n\n[CHANGE_ID]\n\n### 🗒️ Description\n\nFixes SOFT-9999.\n"
+        proc, outputs, _, _ = self.action(body=body)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(outputs["ticket_id"], "soft-1234")
+
+    def test_ids_outside_plan_section_are_ignored(self):
+        body = "### 🎫 Ticket\n\n[SOFT-9999]\n\n### 📋 Plan\n\n\n### 🗒️ Description\n\nRelated to SOFT-8888.\n"
+        proc, outputs, _, _ = self.action(body=body)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(outputs["ticket_id"], "soft-1234")
+
+    def test_explicit_ticket_precedes_plan_section(self):
+        body = "### 📋 Plan\n\n[SOFT-9999]\n"
+        proc, outputs, _, _ = self.action(branch="fix/SOFT-8888/wrong", body=body, ticket="SOFT-1234")
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(outputs["ticket_id"], "soft-1234")
 
     def test_explicit_ticket_precedes_branch(self):
         proc, outputs, _, _ = self.action(branch="fix/SOFT-9999/wrong", ticket="SOFT-1234")

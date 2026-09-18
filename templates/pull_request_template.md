@@ -8,6 +8,7 @@
 [CHANGE_ID]
 <!--
 The OpenSpec change this PR implements, from the shared tec-plans store — normally the ticket ID.
+CI reads this section first, so name the parent's change here when this PR is one of several child tickets.
 Don't have one yet? `openspec new change <TICKET-ID> --store tec-plans`
 More: https://github.com/the-events-calendar/plans
 -->
