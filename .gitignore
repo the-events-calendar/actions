@@ -7,3 +7,4 @@ compiler.jar
 bun.lockb
 __pycache__/
 *.pyc
+tests/.cache/
