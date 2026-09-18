@@ -80,13 +80,20 @@ group:
     repos: |
       the-events-calendar/promoter@server/production
 
-  # OpenSpec plan check — every active product, whatever its stack.
-  # Planning is the one thing a plugin, a library and a service all share, so this
-  # group is deliberately narrow: one workflow, nothing stack-specific. The groups
-  # above stay the place for plugin and Promoter specific files.
+  # Every active product, whatever its stack.
+  # This group carries only what a plugin, a library and a service all need
+  # regardless of stack: the plan check, and the actionlint config that declares
+  # our Blacksmith runner labels for the workflows above. The groups above stay
+  # the place for plugin and Promoter specific files.
+  #
+  # actionlint is synced from .github/ rather than templates/ because this repo
+  # needs the same file at the same path for its own workflows; a templates/ copy
+  # would be a second one to drift.
   - files:
       - source: templates/workflows/openspec-plan.yml
         dest: .github/workflows/openspec-plan.yml
+      - source: .github/actionlint.yaml
+        dest: .github/actionlint.yaml
     repos: |
       the-events-calendar/tribe-common@main
       the-events-calendar/the-events-calendar@main
