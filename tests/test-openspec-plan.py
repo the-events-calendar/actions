@@ -185,6 +185,16 @@ class PlanCheckTests(unittest.TestCase):
         self.assertIn("default: 'block'", action)
         self.assertIn("enforcement: 'block'", (ROOT / "templates/workflows/openspec-plan.yml").read_text())
 
+    def test_release_machinery_is_exempt(self):
+        """The bot and the release branch have no ticket to plan against, so the job never starts."""
+        workflow = (ROOT / "templates/workflows/openspec-plan.yml").read_text()
+        gate = workflow.split("    if: >-\n", 1)[1].split("    steps:", 1)[0]
+        self.assertIn("!contains(github.event.pull_request.body, '[skip-openspec]')", gate)
+        self.assertIn("github.event.pull_request.user.login != 'tec-bot'", gate)
+        self.assertIn("!startsWith(github.head_ref, 'release/')", gate)
+        # A marker typed after the PR opened only takes effect if an edit re-runs the check.
+        self.assertIn("edited", workflow.split("types:", 1)[1].split("]", 1)[0])
+
     def test_ticketless_pr_fails(self):
         result = self.action(branch="automation/update-dependencies", title="Update dependencies")
         self.assert_rejected(result, "invalid")

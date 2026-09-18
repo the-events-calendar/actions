@@ -93,12 +93,29 @@ What it reports:
 | Required artifacts are missing, blank, or invalid | fails with artifact or validation diagnostics |
 | Store or artifacts cannot be read | fails because the plan could not be verified |
 
-**Both the action and the synced workflow default to `enforcement: 'block'`.**
-Automated PRs also need a ticket and a plan; there is no ticketless skip. An explicit
+**Both the action and the synced workflow default to `enforcement: 'block'`.** An explicit
 `ticket-id` takes precedence over the branch, which takes precedence over the title.
 IDs are normalized to lower case. Callers can explicitly select `warn` for advisory
 results; invalid enforcement values always fail. Outputs distinguish validated
 (`true`), missing (`false`), archived, invalid, and unknown results.
+
+### What the check does not run on
+
+The action itself has no exemptions: given a pull request it always wants a ticket and
+a plan. The synced workflow decides whether to ask it at all, through a job-level
+condition, and skips three cases:
+
+| Case | Why |
+|---|---|
+| Author is `tec-bot` | Version bumps, changelog moves, POT files, TBD replacement and merge-forwards come off `task/*` branches that carry no ticket, because there is no change being proposed |
+| Head branch starts with `release/` | The release pull request into `main` is the release, not a change to plan |
+| `[skip-openspec]` in the pull request body | The escape hatch for anything else, matching `[skip-changelog]`. `edited` is in the workflow's trigger types, so adding or removing it re-runs the check |
+
+A skipped job reports as successful to branch protection, so **OpenSpec Plan** stays a
+required check for the pull requests that do run it. The bot exemption is keyed on the
+login that `GHA_BOT_TOKEN_MANAGER` authenticates as; changing that token means changing
+the condition with it. Nothing here weakens the requirement for work somebody chose to
+do: a human pull request off a feature branch still needs its plan.
 
 Validation requires nonempty `proposal.md`, `design.md`, `tasks.md`, and at least
 one `specs/<capability>/spec.md` (nested capability paths are supported). The action
