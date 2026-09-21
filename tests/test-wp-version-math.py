@@ -48,7 +48,7 @@ def extract_run_block() -> str:
 
 
 def bash_runner():
-    """The workflow runs on ubuntu-latest, so the script needs GNU sed.
+    """The workflow runs on blacksmith-4vcpu-ubuntu-2404, so the script needs GNU sed.
 
     Fall back to a container where the host has none, rather than asserting less.
     """
@@ -141,12 +141,11 @@ def main() -> int:
     check("6.8.1 -> MIN_VERSION=6.6", outputs.get("MIN_VERSION") == "6.6")
     check("readme.txt tested up to bumped", "Tested up to: 6.8.1" in files["readme.txt"])
     check("readme.txt minimum bumped", "Requires at least: 6.6" in files["readme.txt"])
-    check("tests-php.yml wp core update rewritten",
-          "wp core update --force --version=6.6" in files["tests-php.yml"])
-    check("tests-php.yml kept its ${SLIC_BIN} prefix",
-          "${SLIC_BIN} wp core update" in files["tests-php.yml"])
-    check("workflow does not rewrite itself",
-          "--version=6.8" in files["release-update-wp-version.yml"])
+    # Test workflows take their WordPress versions from the wp-test-matrix action,
+    # so the bump must leave every workflow file alone.
+    check("workflow files are left untouched",
+          files["tests-php.yml"] == WORKFLOW_FIXTURE
+          and files["release-update-wp-version.yml"] == WORKFLOW_FIXTURE)
 
     # A two-segment version is a legal input.
     proc, outputs, _ = run(script, "6.8", "yes")

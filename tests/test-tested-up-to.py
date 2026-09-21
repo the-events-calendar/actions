@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Regression checks for the "Tested up to" pup check.
+"""Regression checks for the "Tested up to" check.
 
-The check is a pup simple check: pup supplies $output and turns the returned int into
-an exit code, so it cannot be run as a plain script. Every case here builds a
-throwaway repository with a .puprc registering the real template file, then runs pup
-against it.
+The check runs two ways from one file, and both are covered here. The pull request
+workflow runs it as a plain script, which is the matrix below; pup runs it as a simple
+check registered in .puprc, which is the parity block at the end. Every case builds a
+throwaway repository around the real template file.
 
 The current WordPress release is read from the same API the check uses, and the
 fixtures are derived from it, so nothing here goes stale on a WordPress release.
@@ -65,15 +65,17 @@ def pup_phar() -> pathlib.Path:
     return phar
 
 
-def run(readme, base_ref=None):
+def run(readme, base_ref=None, via_pup=False):
     """Run the check in a throwaway repository. Returns (exit code, combined output)."""
-    phar = pup_phar()
     with tempfile.TemporaryDirectory() as directory:
         work = pathlib.Path(directory)
         (work / "bin").mkdir()
         shutil.copy(CHECK, work / "bin/check-tested-up-to.php")
-        shutil.copy(phar, work / "bin/pup.phar")
-        (work / ".puprc").write_text(PUPRC)
+        command = ["php", "bin/check-tested-up-to.php"]
+        if via_pup:
+            shutil.copy(pup_phar(), work / "bin/pup.phar")
+            (work / ".puprc").write_text(PUPRC)
+            command = ["php", "bin/pup.phar", f"check:{SLUG}"]
         if readme is not None:
             (work / "readme.txt").write_text(readme)
 
@@ -83,13 +85,13 @@ def run(readme, base_ref=None):
             env["GITHUB_BASE_REF"] = base_ref
 
         proc = subprocess.run(
-            ["php", "bin/pup.phar", f"check:{SLUG}"],
-            cwd=work, capture_output=True, text=True, env=env,
+            command, cwd=work, capture_output=True, text=True, env=env,
         )
         return proc.returncode, proc.stdout + proc.stderr
 
 
 def header(version: str, trailer: str = "") -> str:
+    """A readme.txt whose plugin header block is tested up to the given version."""
     return (
         "=== The Events Calendar ===\n"
         "\n"
@@ -110,10 +112,11 @@ def main() -> int:
         return 0
 
     latest = latest_wp()
+    branch = ".".join(latest.split(".")[:2])
     major = int(latest.split(".")[0])
     stale = f"{major - 1}.0"
     ahead = f"{major + 1}.0"
-    print(f"current WordPress release: {latest} (stale fixture {stale}, ahead fixture {ahead})\n")
+    print(f"current WordPress release: {latest} (branch {branch}, stale fixture {stale}, ahead fixture {ahead})\n")
 
     failures = []
 
@@ -126,12 +129,19 @@ def main() -> int:
     code, out = run(header(latest), "main")
     check(f"header {latest} on main passes", code == 0)
 
+    # The shape every repository in the sync group actually ships: the WordPress branch
+    # rather than the patch. Comparing it against the full release would fail a
+    # repository that is current.
+    code, out = run(header(branch), "main")
+    check(f"header {branch} on main passes", code == 0)
+
     # A trailing header fails, and the message has to name both versions so the fix is
-    # obvious from the job log alone.
+    # obvious from the job log alone. The expected version is the branch, because that
+    # is what release-update-wp-version.yml writes into readme.txt verbatim.
     code, out = run(header(stale), "main")
     check(f"header {stale} on main fails", code == 1)
     check("the failure names the version found", stale in out)
-    check("the failure names the version expected", latest in out)
+    check("the failure names the branch expected", f"tested_up_to: {branch}" in out)
 
     # A header ahead of the current release is legitimate mid-cycle.
     code, _ = run(header(ahead), "main")
@@ -161,6 +171,17 @@ def main() -> int:
     # A production zip build has no base ref, and the header still has to be current.
     code, _ = run(header(stale), None)
     check(f"header {stale} fails with no base ref", code == 1)
+
+    # The same file under pup, which is how a zip build reaches it once .puprc registers
+    # the check. The workflow does not need that entry, so this only guards the contract
+    # the file keeps with pup: $output is used, not defined, and the int is the status.
+    code, out = run(header(branch), "main", via_pup=True)
+    check(f"pup: header {branch} passes", code == 0)
+    code, out = run(header(stale), "main", via_pup=True)
+    check(f"pup: header {stale} fails", code == 1)
+    check("pup: the failure names the branch expected", f"tested_up_to: {branch}" in out)
+    code, _ = run(None, "main", via_pup=True)
+    check("pup: a missing readme.txt passes", code == 0)
 
     print()
     if failures:

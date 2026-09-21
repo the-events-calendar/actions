@@ -27,7 +27,46 @@ service would only give its developers instructions that do not apply.
 |---|---|---|
 | Active Plugin Repositories | the 8 plugin repos and `tribe-common` | base config, the PR template, `AGENTS.md` (each repo keeps a `CLAUDE.md` symlink to it, seeded by hand and not synced), changelog tooling, release and lint workflows |
 | Promoter | `promoter` | the PR template and project linking |
-| OpenSpec plan check | every active product, 16 repos | one workflow, nothing stack specific |
+| Stack neutral | every active product, 16 repos | the OpenSpec plan check and the actionlint config declaring our Blacksmith runner labels |
+
+## WordPress test matrix
+
+`.github/actions/wp-test-matrix` returns the most recent WordPress X.Y releases
+from the wordpress.org version-check API, newest first, as a JSON array (for
+example `["7.1","7.0.4","6.9.7"]`). Feature pull requests test the latest release
+only. The release sanity check pull request (`release/*` into `main`) tests the
+latest three, so it is the last gate before `main`. Test workflows feed it into
+their matrix:
+
+```yaml
+on: [ pull_request ]
+
+jobs:
+  wp-versions:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    outputs:
+      versions: ${{ steps.matrix.outputs.versions }}
+    steps:
+      - id: matrix
+        uses: the-events-calendar/actions/.github/actions/wp-test-matrix@main
+        with:
+          count: ${{ startsWith(github.head_ref, 'release/') && 3 || 1 }}
+
+  test:
+    needs: wp-versions
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    name: ${{ matrix.suite }} (WP ${{ matrix.wp }})
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [ unit, wpunit ]
+        wp: ${{ fromJSON(needs.wp-versions.outputs.versions) }}
+    steps:
+      - run: ${SLIC_BIN} wp core update --force --version=${{ matrix.wp }}
+```
+
+Because the version under test comes from the matrix, `release-update-wp-version.yml`
+no longer rewrites any `wp core update` line in the test workflows.
 
 ## OpenSpec plan check
 
@@ -54,12 +93,37 @@ What it reports:
 | Required artifacts are missing, blank, or invalid | fails with artifact or validation diagnostics |
 | Store or artifacts cannot be read | fails because the plan could not be verified |
 
-**Both the action and the synced workflow default to `enforcement: 'block'`.**
-Automated PRs also need a ticket and a plan; there is no ticketless skip. An explicit
+**Both the action and the synced workflow default to `enforcement: 'block'`.** An explicit
 `ticket-id` takes precedence over the branch, which takes precedence over the title.
 IDs are normalized to lower case. Callers can explicitly select `warn` for advisory
 results; invalid enforcement values always fail. Outputs distinguish validated
 (`true`), missing (`false`), archived, invalid, and unknown results.
+
+### What the check does not run on
+
+The action itself has no exemptions: given a pull request it always wants a ticket and
+a plan. The synced workflow decides whether to ask it at all, through a job-level
+condition, and skips three cases:
+
+| Case | Why |
+|---|---|
+| Author is `tec-bot` | Version bumps, changelog moves, POT files, TBD replacement and merge-forwards come off `task/*` branches that carry no ticket, because there is no change being proposed |
+| Head branch starts with `release/` | The release pull request into `main` is the release, not a change to plan |
+| `[skip-openspec]` in the pull request body | The escape hatch for anything else, matching `[skip-changelog]`. `edited` is in the workflow's trigger types, so adding or removing it re-runs the check |
+
+A skipped job reports as successful to branch protection, so **OpenSpec Plan** stays a
+required check for the pull requests that do run it. Nothing here weakens the
+requirement for work somebody chose to do: a human pull request off a feature branch
+still needs its plan.
+
+**Check changelog** carries the same three clauses, for the same reasons: a `release/*`
+branch's entries were processed into the changelog list before the pull request opened,
+and the bot's `task/*` pull requests add no entry. Three of those — version bump, TBD
+replacement and POT generation — never carried a `[skip-changelog]` marker in their
+body, so the author clause is what clears them.
+
+Both bot exemptions are keyed on the login that `GHA_BOT_TOKEN_MANAGER` authenticates
+as; changing that token means changing the condition in both workflows with it.
 
 Validation requires nonempty `proposal.md`, `design.md`, `tasks.md`, and at least
 one `specs/<capability>/spec.md` (nested capability paths are supported). The action

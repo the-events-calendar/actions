@@ -17,6 +17,7 @@ on:
       - 'templates/workflows/**'
       - '.github/sync.yml'
       - '.github/workflows/**'
+      - '.github/actionlint.yaml'
       - '.github/actions/verify-openspec-plan/**'
       - 'tests/**'
   push:
@@ -29,7 +30,7 @@ permissions:
 
 jobs:
   actionlint:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v7
@@ -46,7 +47,8 @@ jobs:
       - name: Run actionlint
         run: |
           docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 \
-            -color -shellcheck= .actionlint/.github/workflows/*.yml .github/workflows/*.yml
+            -color -shellcheck= -config-file .github/actionlint.yaml \
+            .actionlint/.github/workflows/*.yml .github/workflows/*.yml
 
       # repo-file-sync-action copies with fs-extra, which refuses to copy a symlink
       # over an identical symlink. The first sync of one succeeds and every later
@@ -64,6 +66,9 @@ jobs:
 
       - name: Check the WordPress version arithmetic
         run: python3 tests/test-wp-version-math.py
+
+      - name: Check the changelog gate
+        run: python3 tests/test-changelogger.py
 
       - name: Check the "Tested up to" guard
         run: python3 tests/test-tested-up-to.py

@@ -5,8 +5,9 @@ name: Check tested up to
 # edited, so there is deliberately no paths filter here: a release pull request
 # that touches nothing else is exactly the one this has to catch.
 #
-# The logic lives in bin/check-tested-up-to.php, registered in .puprc, so that the
-# same check also runs on a production zip build through `pup check` in zip.yml.
+# The logic lives in bin/check-tested-up-to.php. It is run here as a plain script so
+# the gate needs no .puprc entry; registering it there as a simple check additionally
+# puts it in front of a production zip build, through `pup check` in zip.yml.
 # ------------------------------------------------------------------------------
 
 on:
@@ -26,7 +27,7 @@ permissions:
 jobs:
   check-tested-up-to:
     name: Check tested up to
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       # The check runs from the pull request itself, so it gets no credentials and
       # nothing is written into .git/config.
@@ -35,7 +36,7 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      # composer -- pup downloads the pinned phar into bin/; it needs no vendor
-      # install, which is why zip.yml does the same with no install step before it.
+      # The runner image ships php, and the check reads readme.txt and one API. No
+      # composer install, no pup phar download, nothing else to go wrong on a red PR.
       - name: Check the "Tested up to" header
-        run: composer -- pup check:tested-up-to-is-up-to-date
+        run: php bin/check-tested-up-to.php

@@ -6,11 +6,12 @@ on:
     paths:
       - '.github/sync.yml'
       - '.github/workflows/sync.yml'
+      - '.github/actionlint.yaml'
       - 'templates/**'
   workflow_dispatch:
 jobs:
   sync:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
