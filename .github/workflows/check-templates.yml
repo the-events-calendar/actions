@@ -67,6 +67,9 @@ jobs:
       - name: Check the WordPress version arithmetic
         run: python3 tests/test-wp-version-math.py
 
+      - name: Check the changelog gate
+        run: python3 tests/test-changelogger.py
+
       - name: Set up Node for OpenSpec regression tests
         uses: actions/setup-node@v6
         with:

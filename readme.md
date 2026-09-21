@@ -112,10 +112,18 @@ condition, and skips three cases:
 | `[skip-openspec]` in the pull request body | The escape hatch for anything else, matching `[skip-changelog]`. `edited` is in the workflow's trigger types, so adding or removing it re-runs the check |
 
 A skipped job reports as successful to branch protection, so **OpenSpec Plan** stays a
-required check for the pull requests that do run it. The bot exemption is keyed on the
-login that `GHA_BOT_TOKEN_MANAGER` authenticates as; changing that token means changing
-the condition with it. Nothing here weakens the requirement for work somebody chose to
-do: a human pull request off a feature branch still needs its plan.
+required check for the pull requests that do run it. Nothing here weakens the
+requirement for work somebody chose to do: a human pull request off a feature branch
+still needs its plan.
+
+**Check changelog** carries the same three clauses, for the same reasons: a `release/*`
+branch's entries were processed into the changelog list before the pull request opened,
+and the bot's `task/*` pull requests add no entry. Three of those — version bump, TBD
+replacement and POT generation — never carried a `[skip-changelog]` marker in their
+body, so the author clause is what clears them.
+
+Both bot exemptions are keyed on the login that `GHA_BOT_TOKEN_MANAGER` authenticates
+as; changing that token means changing the condition in both workflows with it.
 
 Validation requires nonempty `proposal.md`, `design.md`, `tasks.md`, and at least
 one `specs/<capability>/spec.md` (nested capability paths are supported). The action
