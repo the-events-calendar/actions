@@ -33,10 +33,10 @@ service would only give its developers instructions that do not apply.
 
 `.github/actions/wp-test-matrix` returns the most recent WordPress X.Y releases
 from the wordpress.org version-check API, newest first, as a JSON array (for
-example `["7.1","7.0.4","6.9.7"]`). Feature pull requests test the latest release
-only. The release sanity check pull request (`release/*` into `main`) tests the
-latest three, so it is the last gate before `main`. Test workflows feed it into
-their matrix:
+example `["7.1","7.0.4","6.9.7"]`). Every pull request tests all three, so a
+regression in a new WordPress release is caught on the PR that introduces it.
+The `count` input lowers that if runner minutes ever become a problem. Test
+workflows feed it into their matrix:
 
 ```yaml
 on: [ pull_request ]
@@ -49,8 +49,6 @@ jobs:
     steps:
       - id: matrix
         uses: the-events-calendar/actions/.github/actions/wp-test-matrix@main
-        with:
-          count: ${{ startsWith(github.head_ref, 'release/') && 3 || 1 }}
 
   test:
     needs: wp-versions
@@ -76,9 +74,12 @@ rather than in the product repositories. A feature routinely spans several repos
 so a spec kept in any one of them is invisible from the others.
 
 `templates/workflows/openspec-plan.yml` requires a complete, valid active plan for
-the ticket a pull request belongs to. It reads the ticket id from the branch name
-(`{type}/{task-id}/{short-desc}`), falls back to the PR title, and looks the change
-up through `.github/actions/verify-openspec-plan`. The store is read from a branch
+the ticket a pull request belongs to. It reads the change id from the PR body's
+`### 📋 Plan` section first, so a child ticket's branch can implement its parent's
+plan (branch `feat/SOFT-4410/...`, plan `soft-4409`). When that section is empty
+or still holds the `[CHANGE_ID]` placeholder, it reads the ticket id from the branch
+name (`{type}/{task-id}/{short-desc}`), then falls back to the PR title, and looks
+the change up through `.github/actions/verify-openspec-plan`. The store is read from a branch
 named like the PR branch when one exists there, so a plan still being written can
 be checked before it merges; otherwise the store's default branch is used.
 
@@ -89,12 +90,13 @@ What it reports:
 | Active plan has nonempty artifacts and passes strict validation | passes, with a reminder to archive once every repo has merged |
 | Plan exists but is already archived | fails — a change must remain active until the last repo merges |
 | No plan for that ticket | fails, and the summary shows the command to create one |
-| No valid ticket id | fails with guidance to add an ID to the branch, title, or action's `ticket-id` input |
+| No valid ticket id | fails with guidance to add an ID to the PR body's Plan section, the branch, the title, or the action's `ticket-id` input |
 | Required artifacts are missing, blank, or invalid | fails with artifact or validation diagnostics |
 | Store or artifacts cannot be read | fails because the plan could not be verified |
 
 **Both the action and the synced workflow default to `enforcement: 'block'`.** An explicit
-`ticket-id` takes precedence over the branch, which takes precedence over the title.
+`ticket-id` takes precedence over the PR body's Plan section, which takes precedence
+over the branch, which takes precedence over the title.
 IDs are normalized to lower case. Callers can explicitly select `warn` for advisory
 results; invalid enforcement values always fail. Outputs distinguish validated
 (`true`), missing (`false`), archived, invalid, and unknown results.
