@@ -39,6 +39,8 @@ group:
         dest: bin/process-changelog.sh
       - source: templates/bin/tec-changelog-versioning.js
         dest: bin/tec-changelog-versioning.js
+      - source: templates/bin/check-tested-up-to.php
+        dest: bin/check-tested-up-to.php
 
       # GitHub Workflows
       - source: templates/workflows/release-process-changelog.yml
@@ -61,6 +63,8 @@ group:
         dest: .github/workflows/changelogger.yml
       - source: templates/workflows/release-update-wp-version.yml
         dest: .github/workflows/release-update-wp-version.yml
+      - source: templates/workflows/check-tested-up-to.yml
+        dest: .github/workflows/check-tested-up-to.yml
     repos: |
       the-events-calendar/tribe-common@main
       the-events-calendar/the-events-calendar@main
