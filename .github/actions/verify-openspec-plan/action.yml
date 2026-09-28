@@ -187,6 +187,42 @@ runs:
           esac
         fi
 
+        # Stacked PRs share one plan, written on a plans branch that matches none
+        # of them. Failing an exact match, take an open plans PR whose branch
+        # carries the ticket as its {task-id} segment and holds the change.
+        # ponytail: first page of open PRs only; paginate if the store ever has 100+ open.
+        if [ "$ref" = "HEAD" ]; then
+          if ! pulls=$(gh api "repos/${PLANS_REPO}/pulls?state=open&per_page=100" 2>&1); then
+            echo "::$annotation title=OpenSpec::Listing open pull requests in ${PLANS_REPO} failed, so no plan could be verified."
+            summary "## OpenSpec plan: could not be checked"
+            summary ""
+            summary "Listing the plans repository's open pull requests failed: \`$(printf '%s' "$pulls" | head -1)\`"
+            summary ""
+            summary "This says nothing about whether a plan exists."
+            echo "plan_found=unknown" >> "$GITHUB_OUTPUT"
+            [ "$ENFORCEMENT" = "block" ] && exit 1
+            exit 0
+          fi
+          while IFS=$'\t' read -r number head; do
+            [ -n "$head" ] || continue
+            head_q=$(jq -rn --arg s "$head" '$s|@uri')
+            pr_probe=$(api_probe "repos/${PLANS_REPO}/contents/${active_path}?ref=${head_q}")
+            case "$pr_probe" in
+              ok) ref="$head_q"; ref_note="branch \`${head}\` (plans#${number})"; break ;;
+              error*)
+                echo "::$annotation title=OpenSpec::Looking up ${TICKET} on plans#${number} failed, so no plan could be verified."
+                summary "## OpenSpec plan: could not be checked"
+                summary ""
+                summary "Looking up \`${TICKET}\` on plans#${number} failed: \`$(printf '%s' "$pr_probe" | cut -f2-)\`"
+                echo "plan_found=unknown" >> "$GITHUB_OUTPUT"
+                [ "$ENFORCEMENT" = "block" ] && exit 1
+                exit 0
+                ;;
+            esac
+          done < <(printf '%s' "$pulls" | jq -r --arg t "$TICKET" \
+            '.[] | select(.head.ref | ascii_downcase | split("/") | index($t)) | "\(.number)\t\(.head.ref)"')
+        fi
+
         active_probe=$(api_probe "repos/${PLANS_REPO}/contents/${active_path}?ref=${ref}")
         case "$active_probe" in
           error*)

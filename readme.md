@@ -80,7 +80,9 @@ the ticket a pull request belongs to. It reads the ticket id from the branch nam
 (`{type}/{task-id}/{short-desc}`), falls back to the PR title, and looks the change
 up through `.github/actions/verify-openspec-plan`. The store is read from a branch
 named like the PR branch when one exists there, so a plan still being written can
-be checked before it merges; otherwise the store's default branch is used.
+be checked before it merges. Failing that, an open pull request in the store whose
+branch carries the ticket as its `{task-id}` segment is used, so stacked PRs can share
+one plan branch; otherwise the store's default branch is used.
 
 What it reports:
 

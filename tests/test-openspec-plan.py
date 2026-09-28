@@ -86,11 +86,15 @@ def fail(status):
     sys.exit(1)
 
 repo = "repos/the-events-calendar/plans"
-refs = {"HEAD", "a" * 40, *fixture["branches"]}
+pulls = fixture.get("pulls", [])
+refs = {"HEAD", "a" * 40, *fixture["branches"], *pulls}
 if endpoint in fixture["errors"]:
     fail(fixture["errors"][endpoint])
 if endpoint == repo:
     respond({"default_branch": "main"})
+if endpoint == repo + "/pulls":
+    assert parse_qs(url.query).get("state") == ["open"], url.query
+    respond([{"number": n + 1, "head": {"ref": ref}} for n, ref in enumerate(pulls)])
 if endpoint.startswith(repo + "/branches/"):
     name = unquote(endpoint[len(repo + "/branches/"):])
     if name in fixture["branches"]:
@@ -106,6 +110,10 @@ path = endpoint[len(prefix):]
 query = parse_qs(url.query)
 if query:
     assert set(query) == {"ref"} and query["ref"][0] in refs, query
+# The plan only exists on plan_ref when set; the pinned revision stands for it.
+plan_ref = fixture.get("plan_ref")
+if plan_ref and path.startswith("openspec/changes/") and query["ref"][0] not in (plan_ref, "a" * 40):
+    fail(404)
 
 entries = fixture["entries"]
 if path in entries:
@@ -140,14 +148,15 @@ class PlanCheckTests(unittest.TestCase):
             raise RuntimeError(f"Expected OpenSpec 1.12.0, got {result.stdout.strip()}")
 
     def action(self, *, files=None, branch=BRANCH, title="Fix plan check", ticket="", enforcement="block",
-               errors=None, archived=False, branches=()):
+               errors=None, archived=False, branches=(), pulls=(), plan_ref=None):
         entries = {f"{CHANGE}/{name}": content for name, content in (FILES if files is None else files).items()}
         if archived:
             entries = {f"{ARCHIVE}/{archived}/{name}": content for name, content in FILES.items()}
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             fixture = root / "fixture.json"
-            fixture.write_text(json.dumps({"entries": entries, "errors": errors or {}, "branches": list(branches)}))
+            fixture.write_text(json.dumps({"entries": entries, "errors": errors or {}, "branches": list(branches),
+                                               "pulls": list(pulls), "plan_ref": plan_ref}))
             gh = root / "gh"
             gh.write_text(textwrap.dedent(GH_STUB))
             gh.chmod(0o755)
@@ -300,6 +309,39 @@ class PlanCheckTests(unittest.TestCase):
         self.assertIn(f"{REPO}/contents/{CHANGE}?ref=HEAD", calls)
         self.assertIn(f"{REPO}/commits/HEAD", calls)
         self.assertNotIn(f"?ref={BRANCH_Q}", calls)
+
+    def test_plan_on_open_plans_pr_is_found(self):
+        """Stacked PRs share one plan, written on a plans branch named differently from each of them."""
+        plan_branch = "docs/SOFT-1234/plan"
+        for head in ("feat/SOFT-1234/part-one", "feat/SOFT-1234/part-two"):
+            with self.subTest(head=head):
+                proc, outputs, summary, calls = self.action(
+                    branch=head, pulls=("docs/SOFT-9/other", plan_branch), plan_ref=plan_branch)
+                self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+                self.assertEqual(outputs["plan_found"], "true")
+                self.assertIn(f"{REPO}/contents/{CHANGE}?ref=docs%2FSOFT-1234%2Fplan", calls)
+                self.assertIn("plans#2", summary)
+
+    def test_open_plans_pr_for_another_ticket_is_not_a_match(self):
+        other = "docs/SOFT-12345/plan"
+        result = self.action(pulls=(other,), plan_ref=other)
+        self.assert_rejected(result, "false")
+        self.assertNotIn("SOFT-12345", result[3])
+
+    def test_open_plans_pr_without_the_plan_falls_back_to_default(self):
+        proc, outputs, _, calls = self.action(pulls=("docs/SOFT-1234/notes",), plan_ref="HEAD")
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(outputs["plan_found"], "true")
+        self.assertIn(f"{REPO}/contents/{CHANGE}?ref=HEAD", calls)
+
+    def test_pulls_listing_failure_is_unknown(self):
+        self.assert_rejected(self.action(errors={f"{REPO}/pulls": 500}), "unknown")
+
+    def test_plans_pr_probe_failure_is_unknown(self):
+        errors = {f"{REPO}/contents/{CHANGE}": 500}
+        result = self.action(pulls=("docs/SOFT-1234/plan",), errors=errors)
+        self.assert_rejected(result, "unknown")
+        self.assertIn("plans#1", result[2])
 
     def test_branch_probe_failure_is_unknown(self):
         self.assert_rejected(self.action(errors={f"{REPO}/branches/{BRANCH_Q}": 500}), "unknown")
