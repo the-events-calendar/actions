@@ -53,8 +53,6 @@ group:
         dest: .github/workflows/release-merge-forward.yml
       - source: templates/workflows/release-replace-tbd-entries.yml
         dest: .github/workflows/release-replace-tbd-entries.yml
-      - source: templates/workflows/lint.yml
-        dest: .github/workflows/lint.yml
       - source: templates/workflows/link-project.yml
         dest: .github/workflows/link-project.yml
       - source: templates/workflows/phpcs.yml

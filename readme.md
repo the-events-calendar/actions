@@ -25,7 +25,7 @@ service would only give its developers instructions that do not apply.
 
 | Group | Goes to | Holds |
 |---|---|---|
-| Active Plugin Repositories | the 8 plugin repos and `tribe-common` | base config, the PR template, `AGENTS.md` (each repo keeps a `CLAUDE.md` symlink to it, seeded by hand and not synced), changelog tooling, release and lint workflows |
+| Active Plugin Repositories | the 8 plugin repos and `tribe-common` | base config, the PR template, `AGENTS.md` (each repo keeps a `CLAUDE.md` symlink to it, seeded by hand and not synced), changelog tooling, release workflows |
 | Promoter | `promoter` | the PR template and project linking |
 | Stack neutral | every active product, 16 repos | the OpenSpec plan check and the actionlint config declaring our Blacksmith runner labels |
 
