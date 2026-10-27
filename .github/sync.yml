@@ -79,6 +79,14 @@ group:
         dest: .github/pull_request_template.md
       - source: templates/workflows/link-project.yml
         dest: .github/workflows/link-project.yml
+      # Promoter's CHANGELOG.md is written from changelog/*.yaml at release, as in the
+      # plugins, so its pull requests need the same entry check.
+      - source: templates/changelog/.gitkeep
+        dest: changelog/.gitkeep
+      - source: templates/bin/check-changelog.sh
+        dest: bin/check-changelog.sh
+      - source: templates/workflows/changelogger.yml
+        dest: .github/workflows/changelogger.yml
     repos: |
       the-events-calendar/promoter@server/production
 

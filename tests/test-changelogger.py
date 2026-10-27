@@ -36,6 +36,20 @@ class ChangelogGateTests(unittest.TestCase):
         """A marker typed after the pull request opened only takes effect on an edit."""
         self.assertIn("edited", self.workflow.split("types:", 1)[1].split("]", 1)[0])
 
+    def test_promoter_pull_requests_are_checked(self):
+        """Promoter's pull requests target server/production, not main."""
+        branches = self.workflow.split("    branches:\n", 1)[1].split("    paths-ignore:", 1)[0]
+        self.assertIn("- server/production", branches)
+
+
+class PromoterSyncTests(unittest.TestCase):
+    def test_promoter_receives_the_changelog_check(self):
+        """Without the workflow and its script, a hand-edited CHANGELOG.md goes unnoticed."""
+        sync = (ROOT / ".github/sync.yml").read_text()
+        promoter_group = sync.split("  # Promoter\n", 1)[1].split("\n\n", 1)[0]
+        for dest in (".github/workflows/changelogger.yml", "bin/check-changelog.sh", "changelog/.gitkeep"):
+            self.assertIn(f"dest: {dest}", promoter_group)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
