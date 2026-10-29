@@ -29,6 +29,18 @@ service would only give its developers instructions that do not apply.
 | Promoter | `promoter` | the PR template, project linking and the changelog entry check |
 | Stack neutral | every active product, 16 repos | the OpenSpec plan check and the actionlint config declaring our Blacksmith runner labels |
 
+## Release prep
+
+`templates/workflows/release-prep.yml` bumps the version, replaces the TBDs and writes the
+changelog on a release branch in one run, committing straight to the branch through the GitHub
+API. It calls `.github/actions/release-prep`, a thin wrapper around the
+[plugin-toolbox release-prep action](https://github.com/stellarwp/plugin-toolbox/tree/main/.github/actions/release-prep),
+whose README documents what it changes and what it refuses.
+
+The wrapper is pinned to the toolbox PR branch while we trial it
+([stellarwp/plugin-toolbox#8](https://github.com/stellarwp/plugin-toolbox/pull/8)). The
+existing `release-*` workflows stay in place until the trial is done.
+
 ## WordPress test matrix
 
 `.github/actions/wp-test-matrix` returns the most recent WordPress X.Y releases

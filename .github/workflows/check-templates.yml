@@ -19,6 +19,7 @@ on:
       - '.github/workflows/**'
       - '.github/actionlint.yaml'
       - '.github/actions/verify-openspec-plan/**'
+      - '.github/actions/release-prep/**'
       - 'tests/**'
   push:
     branches:
@@ -72,6 +73,9 @@ jobs:
 
       - name: Check the "Tested up to" guard
         run: python3 tests/test-tested-up-to.py
+
+      - name: Check the release prep wiring
+        run: python3 tests/test-release-prep.py
 
       - name: Set up Node for OpenSpec regression tests
         uses: actions/setup-node@v6

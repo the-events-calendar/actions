@@ -1,0 +1,50 @@
+name: "Release prep"
+description: "Bumps the version, replaces the TBDs and writes the changelog, then commits it to the release branch"
+
+# A thin wrapper so the product repos call our actions repo, as they do for the other release
+# steps, while the work happens in the toolbox's release-prep action. Its README documents the
+# inputs and what it refuses.
+#
+# Pinned to the toolbox PR branch while we trial it: stellarwp/plugin-toolbox#8. Swap to @v1 once
+# that is merged and tagged.
+
+inputs:
+  branch:
+    description: "The release branch to commit the preparation to, e.g. release/T24.centaur. The checkout has to be on it."
+    required: true
+  version:
+    description: "The version to prepare, e.g. 6.18.3 or 6.18.2.1"
+    required: true
+  date:
+    description: "The changelog date as YYYY-MM-DD. Empty or 'today' writes today, in UTC"
+    required: false
+    default: ""
+  token:
+    description: "Token the commit is created with. Needs contents: write on the repository"
+    required: true
+
+outputs:
+  version:
+    description: "The version prepared"
+    value: ${{ steps.prep.outputs.version }}
+  date:
+    description: "The date written in the changelog"
+    value: ${{ steps.prep.outputs.date }}
+  commit:
+    description: "The commit created on the branch. Empty when nothing changed"
+    value: ${{ steps.prep.outputs.commit }}
+  files:
+    description: "The files the commit changed, one per line"
+    value: ${{ steps.prep.outputs.files }}
+
+runs:
+  using: composite
+  steps:
+    - name: "Prepare the release branch"
+      id: prep
+      uses: stellarwp/plugin-toolbox/.github/actions/release-prep@soft-5187-branch-prefixes
+      with:
+        branch: ${{ inputs.branch }}
+        version: ${{ inputs.version }}
+        date: ${{ inputs.date }}
+        token: ${{ inputs.token }}
