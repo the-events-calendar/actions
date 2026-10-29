@@ -5,8 +5,9 @@ description: "Bumps the version, replaces the TBDs and writes the changelog, the
 # steps, while the work happens in the toolbox's release-prep action. Its README documents the
 # inputs and what it refuses.
 #
-# Pinned to the toolbox PR branch while we trial it: stellarwp/plugin-toolbox#8. Swap to @v1 once
-# that is merged and tagged.
+# Pinned to a commit of the toolbox PR branch soft-5187-branch-prefixes (stellarwp/plugin-toolbox#8)
+# while we trial it, never the branch itself: the bot token is handed to this code, and a branch can
+# change under us. Bump the SHA to pick up new commits; swap to @v1 once the PR is merged and tagged.
 
 inputs:
   branch:
@@ -42,7 +43,7 @@ runs:
   steps:
     - name: "Prepare the release branch"
       id: prep
-      uses: stellarwp/plugin-toolbox/.github/actions/release-prep@soft-5187-branch-prefixes
+      uses: stellarwp/plugin-toolbox/.github/actions/release-prep@34d31563e34616c1821a506bc03a8d65329faaf3 # soft-5187-branch-prefixes
       with:
         branch: ${{ inputs.branch }}
         version: ${{ inputs.version }}

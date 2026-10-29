@@ -37,9 +37,10 @@ API. It calls `.github/actions/release-prep`, a thin wrapper around the
 [plugin-toolbox release-prep action](https://github.com/stellarwp/plugin-toolbox/tree/main/.github/actions/release-prep),
 whose README documents what it changes and what it refuses.
 
-The wrapper is pinned to the toolbox PR branch while we trial it
-([stellarwp/plugin-toolbox#8](https://github.com/stellarwp/plugin-toolbox/pull/8)). The
-existing `release-*` workflows stay in place until the trial is done.
+The wrapper is pinned to a commit of the toolbox PR branch while we trial it
+([stellarwp/plugin-toolbox#8](https://github.com/stellarwp/plugin-toolbox/pull/8)), not to the
+branch, because the bot token is handed to that code. The existing `release-*` workflows stay in
+place until the trial is done.
 
 ## WordPress test matrix
 

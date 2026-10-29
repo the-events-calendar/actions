@@ -17,14 +17,19 @@ class ReleasePrepTests(unittest.TestCase):
         """release/* requires pull requests, and github.token starts no workflow run on its commit."""
         self.assertIn("token: ${{ secrets.GHA_BOT_TOKEN_MANAGER }}", WORKFLOW.read_text())
 
+    def test_template_checks_out_the_submodules(self):
+        """TEC and ET scan common/src for TBDs, and pup fails on a directory that is not there."""
+        self.assertIn("submodules: recursive", WORKFLOW.read_text())
+
     def test_template_calls_our_wrapper(self):
         """The toolbox ref is pinned in one place, the wrapper, not in every product repo."""
         workflow = WORKFLOW.read_text()
         self.assertIn("uses: the-events-calendar/actions/.github/actions/release-prep@main", workflow)
         self.assertNotIn("stellarwp/plugin-toolbox", workflow)
 
-    def test_wrapper_calls_the_toolbox_action(self):
-        self.assertIn("uses: stellarwp/plugin-toolbox/.github/actions/release-prep@", WRAPPER.read_text())
+    def test_wrapper_pins_the_toolbox_action_to_a_commit(self):
+        """The bot token reaches this code, so it must not be a ref that can move under us."""
+        self.assertRegex(WRAPPER.read_text(), r"uses: stellarwp/plugin-toolbox/\.github/actions/release-prep@[0-9a-f]{40}\b")
 
     def test_plugin_repos_receive_the_workflow(self):
         """common and every plugin are prepared the same way."""

@@ -40,6 +40,10 @@ jobs:
         with:
           ref: ${{ inputs.branch }}
           persist-credentials: false
+          # TEC and ET list common/src in .puprc's TBD dirs, and pup fails on a directory that is
+          # not there. The TBDs pup replaces inside common are not committed: the action commits the
+          # parent repository's files only, and common is prepared in its own repository.
+          submodules: recursive
 
       # The bot token, not github.token: release/* requires pull requests, and a commit made with
       # github.token starts no workflow run on the branch.
