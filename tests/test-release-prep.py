@@ -50,6 +50,12 @@ class ReleasePrepTests(unittest.TestCase):
         for step in ("- name: Update the WordPress version", "- name: Push the POT file to GlotPress"):
             self.assertLess(check, workflow.index(step), step)
 
+    def test_the_pot_check_ignores_the_headers_every_run_rewrites(self):
+        """make-pot stamps the date and the plugin version; a re-run after the bump changes both."""
+        workflow = WORKFLOW.read_text()
+        self.assertIn("-I'POT-Creation-Date:'", workflow)
+        self.assertIn("-I'Project-Id-Version:'", workflow)
+
     def test_plugin_repos_receive_the_workflow(self):
         """common and every plugin are prepared the same way."""
         sync = (ROOT / ".github/sync.yml").read_text()

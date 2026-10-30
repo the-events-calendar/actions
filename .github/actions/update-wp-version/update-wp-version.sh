@@ -8,7 +8,8 @@ set -e
 
 TESTED_VERSION="$TESTED_UP_TO"
 
-if ! [[ "$TESTED_VERSION" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+# No zero-padded parts: bash arithmetic reads 010 as octal 8.
+if ! [[ "$TESTED_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))?$ ]]; then
   echo "::error::tested_up_to must look like 6.8 or 6.8.1, got '$TESTED_VERSION'."
   exit 1
 fi

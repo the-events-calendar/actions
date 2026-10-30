@@ -137,7 +137,9 @@ def main() -> int:
               proc.returncode != 0 and "-" not in outputs.get("MIN_VERSION", ""))
 
     # Garbage in must not reach the plugin headers.
-    for bad in ("banana", "6", ""):
+    # Zero-padded parts are refused: bash arithmetic reads 010 as octal 8, so 6.010 would have
+    # written 6.6, and 6.08 would have crashed the step.
+    for bad in ("banana", "6", "", "6.08", "6.010", "06.8"):
         proc, _, _ = run(script, bad, "yes")
         check(f"{bad!r} is rejected", proc.returncode != 0)
 

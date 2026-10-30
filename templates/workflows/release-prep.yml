@@ -112,15 +112,16 @@ jobs:
           plugin_path: ${{ github.workspace }}
           pot_path: ${{ github.workspace }}/lang/${{ steps.i18n.outputs.plugin_slug }}.pot
 
-      # make-pot stamps POT-Creation-Date on every run. A POT that differs by that line only is put
-      # back, so a second run commits nothing and pushes no second language entry for the release.
+      # make-pot stamps POT-Creation-Date and the plugin version (Project-Id-Version) on every run,
+      # and a re-run sees the version the first run bumped. A POT that differs by those lines only is
+      # put back, so a second run commits nothing and pushes no second language entry.
       - name: Check whether the strings changed
         id: pot
         env:
           POT: lang/${{ steps.i18n.outputs.plugin_slug }}.pot
         run: |
           if [ -n "$(git ls-files --others --exclude-standard -- "$POT")" ] \
-            || ! git diff --quiet -I'POT-Creation-Date:' -- "$POT"; then
+            || ! git diff --quiet -I'POT-Creation-Date:' -I'Project-Id-Version:' -- "$POT"; then
             echo "changed=1" >> "$GITHUB_OUTPUT"
           else
             git checkout -- "$POT"
