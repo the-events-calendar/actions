@@ -20,6 +20,8 @@ on:
       - '.github/actionlint.yaml'
       - '.github/actions/verify-openspec-plan/**'
       - '.github/actions/release-prep/**'
+      - '.github/actions/update-wp-version/**'
+      - '.github/actions/import-common-changelog/**'
       - 'tests/**'
   push:
     branches:
@@ -76,6 +78,9 @@ jobs:
 
       - name: Check the release prep wiring
         run: python3 tests/test-release-prep.py
+
+      - name: Check the common changelog import
+        run: python3 tests/test-import-common-changelog.py
 
       - name: Set up Node for OpenSpec regression tests
         uses: actions/setup-node@v6

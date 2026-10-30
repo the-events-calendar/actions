@@ -31,6 +31,25 @@ class ReleasePrepTests(unittest.TestCase):
         """The bot token reaches this code, so it must not be a ref that can move under us."""
         self.assertRegex(WRAPPER.read_text(), r"uses: stellarwp/plugin-toolbox/\.github/actions/release-prep@[0-9a-f]{40}\b")
 
+    def test_template_fetches_the_history_the_common_import_reads(self):
+        """The import diffs common between the last release tag and HEAD."""
+        self.assertIn("fetch-depth: 0", WORKFLOW.read_text())
+
+    def test_every_file_writing_step_runs_before_the_commit(self):
+        """The toolbox action commits the working tree; a step after it would be left out."""
+        workflow = WORKFLOW.read_text()
+        prep = workflow.index("- name: Prepare the release branch")
+        for step in ("- name: Check the version", "- name: Update the WordPress version",
+                     "- name: Import common's changelog entries",
+                     "- name: Generate the POT file", "- name: Add the language changelog entry"):
+            self.assertLess(workflow.index(step), prep, step)
+
+    def test_the_version_is_checked_before_anything_is_written(self):
+        workflow = WORKFLOW.read_text()
+        check = workflow.index("- name: Check the version")
+        for step in ("- name: Update the WordPress version", "- name: Push the POT file to GlotPress"):
+            self.assertLess(check, workflow.index(step), step)
+
     def test_plugin_repos_receive_the_workflow(self):
         """common and every plugin are prepared the same way."""
         sync = (ROOT / ".github/sync.yml").read_text()
