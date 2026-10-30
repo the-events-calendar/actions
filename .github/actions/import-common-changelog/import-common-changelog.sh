@@ -91,8 +91,12 @@ while read -r added; do
         continue
       fi
       content=$(git -C "$path" show "$deleted^:$file")
-    else
+    elif git -C "$path" cat-file -e "$new:$file" 2>/dev/null; then
       content=$(git -C "$path" show "$new:$file")
+    else
+      # Added on a branch the merge did not keep (git merge -s ours): never shipped.
+      echo "- skipped \`$file\` from common \`${added:0:8}\`, not in common at HEAD" >> "$summary"
+      continue
     fi
 
     type=$(sed -n 's/^type:[[:space:]]*//p' <<< "$content" | head -1 | tr -d "\"'" | tr '[:upper:]' '[:lower:]')

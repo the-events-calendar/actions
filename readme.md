@@ -38,8 +38,8 @@ made straight to the branch through the GitHub API, in this order:
 2. Optionally sets "Tested up to" and "Requires at least" (`.github/actions/update-wp-version`).
 3. In TEC and ET, copies the changelog entries common gained since the last release tag,
    except Language and Version ones (`.github/actions/import-common-changelog`).
-4. Regenerates the POT and, on `release/*` or `hotfix/*` when the strings changed, pushes it to
-   GlotPress and adds the Language entry.
+4. Regenerates the POT and, on `release/*` when the strings changed, pushes it to GlotPress and
+   adds the Language entry.
 5. Bumps the version, replaces the TBDs in `.puprc`'s `checks.tbd.dirs`, writes the changelog
    and commits everything above, through
    `.github/actions/release-prep`, a thin wrapper around the

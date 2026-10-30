@@ -71,6 +71,7 @@ class ReleasePrepTests(unittest.TestCase):
         workflow = WORKFLOW.read_text()
         self.assertIn("-I'POT-Creation-Date:'", workflow)
         self.assertIn("-I'Project-Id-Version:'", workflow)
+        self.assertIn("-I'X-Generator:'", workflow)
 
     def test_plugin_repos_receive_the_workflow(self):
         """common and every plugin are prepared the same way."""

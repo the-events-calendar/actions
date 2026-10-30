@@ -234,6 +234,20 @@ class ImportCommonChangelogTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertEqual(self.pending(), {"common-fix-license.yaml": FIX})
 
+    def test_skips_an_entry_added_on_a_branch_the_merge_discarded(self):
+        """git merge -s ours keeps the branch in history and none of its files."""
+        self.common.git("checkout", "-q", "-b", "obsolete")
+        self.common.write("changelog/fix-license.yaml", FIX)
+        self.common.commit("entry on an obsolete branch")
+        self.common.git("checkout", "-q", "main")
+        self.common.write("changelog/fix-svul-113.yaml", SECURITY)
+        self.common.commit("entry")
+        self.common.git("merge", "-q", "-s", "ours", "--no-edit", "obsolete")
+        self.bump_common()
+        proc = self.run_script()
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(self.pending(), {"common-fix-svul-113.yaml": SECURITY})
+
     def test_skips_an_entry_common_reverted(self):
         """A deletion that is not a release means the change never shipped."""
         self.advance_common({"fix-license.yaml": FIX, "fix-svul-113.yaml": SECURITY})
