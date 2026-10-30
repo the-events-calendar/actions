@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
-"""Regression checks for the version arithmetic in release-update-wp-version.yml.
+"""Regression checks for the version arithmetic in the update-wp-version action.
 
-The script under test is extracted from the workflow rather than restated here, so
-there is only ever one copy of the logic.
+The script under test is the action's own update-wp-version.sh, which both
+release-update-wp-version.yml and release-prep.yml run, so there is only ever one copy
+of the logic.
 
 Run it with: python3 tests/test-wp-version-math.py
 """
 
 import pathlib
-import re
 import subprocess
 import sys
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-WORKFLOW = ROOT / "templates/workflows/release-update-wp-version.yml"
-STEP = "Calculate and update versions"
+SCRIPT = ROOT / ".github/actions/update-wp-version/update-wp-version.sh"
 
 WORKFLOW_FIXTURE = """\
 name: tests
@@ -25,26 +24,6 @@ jobs:
       - run: |
           ${SLIC_BIN} wp core update --force --version=6.8
 """
-
-
-def extract_run_block() -> str:
-    """Pull the `run: |` body out of the named step."""
-    text = WORKFLOW.read_text()
-    start = text.index(f"- name: {STEP}")
-    body = text[text.index("run: |", start) + len("run: |\n"):]
-    lines, indent = [], None
-    for line in body.splitlines():
-        if line.strip() == "":
-            lines.append("")
-            continue
-        current = len(line) - len(line.lstrip())
-        if indent is None:
-            indent = current
-        elif current < indent:
-            break
-        lines.append(line[indent:])
-    assert lines, "could not extract the run block"
-    return "\n".join(lines)
 
 
 def bash_runner():
@@ -127,7 +106,7 @@ def main() -> int:
         print("needs GNU sed or docker; skipping")
         return 0
     print(f"running the workflow snippet via: {RUNNER}\n")
-    script = extract_run_block()
+    script = SCRIPT.read_text()
     failures = []
 
     def check(label, cond):
