@@ -7,6 +7,7 @@ Run: python3 tests/test-import-common-changelog.py
 
 from pathlib import Path
 import os
+import re
 import subprocess
 import tempfile
 import unittest
@@ -90,7 +91,12 @@ class ImportCommonChangelogTests(unittest.TestCase):
         return proc
 
     def pending(self):
-        return {p.name: p.read_text() for p in (self.plugin.path / "changelog").glob("*.yaml")}
+        """Pending entries by name, without the common commit an imported name ends in."""
+        return {re.sub(r"-[0-9a-f]{8}\.yaml$", ".yaml", p.name): p.read_text()
+                for p in (self.plugin.path / "changelog").glob("*.yaml")}
+
+    def pending_contents(self):
+        return sorted(p.read_text() for p in (self.plugin.path / "changelog").glob("*.yaml"))
 
     def test_imports_entries_common_already_processed(self):
         """Common's release deletes its entries; they are read from its history instead."""
@@ -156,6 +162,59 @@ class ImportCommonChangelogTests(unittest.TestCase):
         self.advance_common({"fix-svul-113.yaml": SECURITY})
         self.run_script()
         self.assertEqual(set(self.pending()), {"common-fix-license.yaml", "common-fix-svul-113.yaml"})
+
+    def test_ignores_a_prerelease_tag(self):
+        """A 6.18.3-rc1 between the release and HEAD would hide the entries before it."""
+        self.advance_common({"fix-license.yaml": FIX})
+        self.plugin.git("tag", "6.18.3-rc1")
+        self.advance_common({"fix-svul-113.yaml": SECURITY})
+        self.run_script()
+        self.assertEqual(len(self.pending()), 2)
+
+    def test_imports_an_entry_whose_text_is_part_of_a_longer_one(self):
+        """Only the same entry counts as a duplicate, not one that merely starts the same way."""
+        self.plugin.write("changelog.md", "# Changelog\n\n### [6.18.2] 2026-10-15\n\n"
+                                          "* Security - Hardened author handling in the REST API and admin\n")
+        self.plugin.commit("longer entry")
+        self.plugin.git("tag", "-f", "6.18.2")
+        short = "significance: patch\ntype: security\nentry: Hardened author handling in the REST API\n"
+        self.advance_common({"rest.yaml": short})
+        self.run_script()
+        self.assertEqual(list(self.pending().values()), [short])
+
+    def test_skips_a_folded_entry_already_in_the_changelog(self):
+        """An entry the YAML folds over two lines is one line in changelog.md."""
+        self.plugin.write("changelog.md", "# Changelog\n\n### [6.18.2] 2026-10-15\n\n"
+                                          "* Tweak - Added actions: `tribe_settings_form_element_open`, "
+                                          "`tribe_settings_form_element_close`\n")
+        self.plugin.commit("folded entry, copied by hand")
+        self.plugin.git("tag", "-f", "6.18.2")
+        self.advance_common({"tut.yaml": FOLDED})
+        self.run_script()
+        self.assertEqual(self.pending(), {})
+
+    def test_imports_a_folded_entry_that_only_starts_like_an_existing_one(self):
+        self.plugin.write("changelog.md", "# Changelog\n\n### [6.18.2] 2026-10-15\n\n"
+                                          "* Tweak - Added actions: `tribe_settings_form_element_open`, `other`\n")
+        self.plugin.commit("similar entry")
+        self.plugin.git("tag", "-f", "6.18.2")
+        self.advance_common({"tut.yaml": FOLDED})
+        self.run_script()
+        self.assertEqual(list(self.pending().values()), [FOLDED])
+
+    def test_keeps_both_entries_when_common_reuses_a_filename(self):
+        """Common released twice in the range, with the same entry filename each time."""
+        self.advance_common({"fix-license.yaml": FIX}, process=True)
+        self.advance_common({"fix-license.yaml": SECURITY}, process=True)
+        self.run_script()
+        self.assertEqual(self.pending_contents(), sorted([FIX, SECURITY]))
+
+    def test_imports_the_last_edit_of_an_entry(self):
+        edited = FIX.replace("fataling", "fataling on multisite")
+        self.advance_common({"fix-license.yaml": FIX})
+        self.advance_common({"fix-license.yaml": edited}, process=True)
+        self.run_script()
+        self.assertEqual(list(self.pending().values()), [edited])
 
     def test_fails_without_a_reachable_tag(self):
         """Without the last release there is no range, and guessing one would drop entries."""

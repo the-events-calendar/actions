@@ -17,9 +17,11 @@ if [ -z "$path" ]; then
   exit 0
 fi
 
-# Release tags only: a nearer tag such as ft-002 would shorten the range and drop entries.
-if ! last_tag=$(git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*' HEAD 2>/dev/null); then
-  echo "::error::No tag is reachable from HEAD, so the last release's common is unknown. Check out with fetch-depth: 0."
+# The newest release tag reachable from HEAD, matched on the whole name: a tag such as ft-002 or
+# 6.18.3-rc1 would shorten the range and drop the entries before it.
+last_tag=$(git tag --merged HEAD | { grep -E '^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$' || true; } | sort -V | tail -1)
+if [ -z "$last_tag" ]; then
+  echo "::error::No release tag is reachable from HEAD, so the last release's common is unknown. Check out with fetch-depth: 0."
   exit 1
 fi
 old=$(git rev-parse "$last_tag:$path")
@@ -41,39 +43,65 @@ for sha in "$old" "$new"; do
   fi
 done
 
+# An entry's identity: its type and its text, whitespace removed, so the folded YAML of an entry
+# and its one line in changelog.md compare equal, and a different entry never does.
+entry_key() {
+  local type text
+  type=$(sed -n 's/^type:[[:space:]]*//p' <<< "$1" | head -1 | tr -d "\"'[:space:]")
+  text=$(awk 'f && /^[A-Za-z_]+:/ { exit } /^entry:/ { f = 1; sub(/^entry:[ \t]*/, "") } f' <<< "$1")
+  # A block scalar's indicator (| or >-) is on the entry line, the text below it.
+  if [[ "${text%%$'\n'*}" =~ ^[\|\>][-+0-9]*$ ]]; then
+    text=${text#*$'\n'}
+  fi
+  text=$(tr -d '[:space:]' <<< "$text")
+  case "$text" in
+    \"*\") text=${text:1:${#text}-2}; text=${text//\\\"/\"}; text=${text//\\\\/\\} ;;
+    \'*\') text=${text:1:${#text}-2}; text=${text//\'\'/\'} ;;
+  esac
+  printf '%s-%s\n' "$(tr '[:lower:]' '[:upper:]' <<< "${type:0:1}")${type:1}" "$text"
+}
+
+# Every entry the plugin already carries: written in changelog.md or readme.txt, by hand as was
+# done before this step existed or by an earlier run of the same preparation, or still pending.
+known=$(mktemp)
+sed -nE 's/^\* ([A-Za-z]+) - (.*)$/\1-\2/p' changelog.md readme.txt 2>/dev/null | tr -d ' \t\r' > "$known" || true
+for pending in changelog/*.yaml; do
+  [ -f "$pending" ] && entry_key "$(cat "$pending")" >> "$known"
+done
+
 mkdir -p changelog
 imported=0
-while IFS= read -r file; do
-  dest="changelog/common-$(basename "$file")"
+# Each time a file was added, not each path: common's release deletes its entries, so a later
+# entry can reuse the filename of one already released within the range.
+while read -r added; do
+  while IFS= read -r file; do
+    # The entry as it stood when common's release deleted it, or as it stands at HEAD.
+    deleted=$(git -C "$path" log --reverse --diff-filter=D --format=%H "$added..$new" -- "$file" | awk 'NR == 1')
+    if [ -n "$deleted" ]; then
+      content=$(git -C "$path" show "$deleted^:$file")
+    else
+      content=$(git -C "$path" show "$new:$file")
+    fi
 
-  # The entry as last added or edited within the range, whether or not common has since
-  # processed and deleted it.
-  commit=$(git -C "$path" log -1 --diff-filter=AM --format=%H "$old..$new" -- "$file")
-  content=$(git -C "$path" show "$commit:$file")
+    type=$(sed -n 's/^type:[[:space:]]*//p' <<< "$content" | head -1 | tr -d "\"'" | tr '[:upper:]' '[:lower:]')
+    case "$type" in
+      language | version) continue ;;
+    esac
 
-  type=$(sed -n 's/^type:[[:space:]]*//p' <<< "$content" | head -1 | tr -d "\"'" | tr '[:upper:]' '[:lower:]')
-  case "$type" in
-    language | version) continue ;;
-  esac
+    key=$(entry_key "$content")
+    if grep -qxF -- "$key" "$known"; then
+      echo "- skipped \`$file\` from common \`${added:0:8}\`, the plugin already has it" >> "$summary"
+      continue
+    fi
+    echo "$key" >> "$known"
 
-  # Skip an entry the plugin's changelog already carries, written by hand as was done before
-  # this step existed, or imported by an earlier run of the same preparation.
-  # ponytail: matches the entry's first line only, enough for one-line and folded entries;
-  # parse the YAML if escaped quotes ever make a duplicate slip through.
-  first=$(sed -n 's/^entry:[[:space:]]*//p' <<< "$content" | head -1 | sed -E "s/^[\"']//; s/[\"']$//; s/\\\\\"/\"/g")
-  if [ -n "$first" ] && [[ "$first" != [\|\>]* ]] \
-    && grep -qsF -- "$(tr '[:lower:]' '[:upper:]' <<< "${type:0:1}")${type:1} - $first" changelog.md readme.txt; then
-    echo "- skipped \`$file\`, already in the changelog" >> "$summary"
-    continue
-  fi
-  if [ -n "$first" ] && grep -qsF -- "$first" changelog/*.yaml; then
-    echo "- skipped \`$file\`, a pending entry already has it" >> "$summary"
-    continue
-  fi
-
-  printf '%s\n' "$content" > "$dest"
-  echo "- \`$dest\` from common \`${commit:0:8}\`" >> "$summary"
-  imported=$((imported + 1))
-done < <(git -C "$path" log --diff-filter=A --name-only --format= "$old..$new" -- changelog | grep '\.yaml$' | sort -u)
+    name=$(basename "$file" .yaml)
+    dest="changelog/common-$name-${added:0:8}.yaml"
+    printf '%s\n' "$content" > "$dest"
+    echo "- \`$dest\` from common \`${added:0:8}\`" >> "$summary"
+    imported=$((imported + 1))
+  done < <(git -C "$path" diff-tree --no-commit-id --name-only -r --diff-filter=A "$added" -- changelog | { grep '\.yaml$' || true; })
+done < <(git -C "$path" log --reverse --diff-filter=A --format=%H "$old..$new" -- changelog)
+rm -f "$known"
 
 echo "Imported $imported common changelog entries (common ${old:0:8}..${new:0:8})."
