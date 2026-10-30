@@ -24,6 +24,12 @@ if [ -z "$last_tag" ]; then
   echo "::error::No release tag is reachable from HEAD, so the last release's common is unknown. Check out with fetch-depth: 0."
   exit 1
 fi
+# Two release branches open at once: the newer one does not contain the older one's tag until it
+# is merged in, so the range starts a release early and the older release's entries come again.
+newest_tag=$(git tag | { grep -E '^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$' || true; } | sort -V | tail -1)
+if [ "$newest_tag" != "$last_tag" ]; then
+  echo "::warning::The newest release tag is $newest_tag, but HEAD only contains $last_tag. If this branch should carry $newest_tag, merge it in first, or its common entries are imported again."
+fi
 old=$(git rev-parse "$last_tag:$path")
 new=$(git rev-parse "HEAD:$path")
 
@@ -76,8 +82,14 @@ imported=0
 while read -r added; do
   while IFS= read -r file; do
     # The entry as it stood when common's release deleted it, or as it stands at HEAD.
-    deleted=$(git -C "$path" log --reverse --diff-filter=D --format=%H "$added..$new" -- "$file" | awk 'NR == 1')
+    deleted=$(git -C "$path" log --reverse --full-history --diff-filter=D --format=%H "$added..$new" -- "$file" | awk 'NR == 1')
     if [ -n "$deleted" ]; then
+      # Only common's release deletes an entry while writing changelog.md. Any other deletion, a
+      # revert or an entry dropped in review, means the change never shipped.
+      if ! git -C "$path" diff-tree --no-commit-id --name-only -r "$deleted" | grep -qx 'changelog.md'; then
+        echo "- skipped \`$file\` from common \`${added:0:8}\`, deleted in \`${deleted:0:8}\` by something other than a release" >> "$summary"
+        continue
+      fi
       content=$(git -C "$path" show "$deleted^:$file")
     else
       content=$(git -C "$path" show "$new:$file")
@@ -101,7 +113,9 @@ while read -r added; do
     echo "- \`$dest\` from common \`${added:0:8}\`" >> "$summary"
     imported=$((imported + 1))
   done < <(git -C "$path" diff-tree --no-commit-id --name-only -r --diff-filter=A "$added" -- changelog | { grep '\.yaml$' || true; })
-done < <(git -C "$path" log --reverse --diff-filter=A --format=%H "$old..$new" -- changelog)
+# --full-history: with a path limit, git follows only the first parent of a merge whose changelog/
+# matches it, which is a merged release branch that added its entries and then deleted them.
+done < <(git -C "$path" log --reverse --full-history --diff-filter=A --format=%H "$old..$new" -- changelog)
 rm -f "$known"
 
 echo "Imported $imported common changelog entries (common ${old:0:8}..${new:0:8})."

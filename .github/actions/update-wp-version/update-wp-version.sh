@@ -51,10 +51,13 @@ fi
 # Update plugin.php if minimum version is being updated
 if [ "$UPDATE_MIN_VERSION" = "yes" ]; then
   # Get plugin file from .puprc versions array that is a PHP file in the base directory
-  PLUGIN_FILE=$(jq -r '.paths.versions[] | select(.file | test("^[^/]+\\.php$")) | .file' .puprc)
+  PLUGIN_FILE=$(jq -r '[.paths.versions[] | select(.file | test("^[^/]+\\.php$")) | .file] | unique | .[]' .puprc)
 
-  if [ -f "$PLUGIN_FILE" ]; then
-    sed -i "s/Requires at least: [0-9.]*/Requires at least: $MIN_VERSION/" "$PLUGIN_FILE"
-    echo "* Updated \`$PLUGIN_FILE\`" >> $GITHUB_STEP_SUMMARY
+  # The header lives in exactly one file; anything else would skip it in silence.
+  if [ -z "$PLUGIN_FILE" ] || [[ "$PLUGIN_FILE" == *$'\n'* ]] || [ ! -f "$PLUGIN_FILE" ]; then
+    echo "::error::.puprc must list exactly one root PHP file under paths.versions, got '$PLUGIN_FILE'."
+    exit 1
   fi
+  sed -i "s/Requires at least: [0-9.]*/Requires at least: $MIN_VERSION/" "$PLUGIN_FILE"
+  echo "* Updated \`$PLUGIN_FILE\`" >> $GITHUB_STEP_SUMMARY
 fi

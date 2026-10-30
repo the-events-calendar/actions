@@ -77,12 +77,21 @@ class ImportCommonChangelogTests(unittest.TestCase):
             self.common.write(f"changelog/{name}", body)
         self.common.commit("entries")
         if process:
-            for name in files:
-                (self.common.path / "changelog" / name).unlink()
-            self.common.commit("Process changelog")
+            self.process_common(files)
+        self.bump_common()
+
+    def process_common(self, files):
+        """Common's release: the entries are deleted and written into changelog.md, in one commit."""
+        for name in files:
+            (self.common.path / "changelog" / name).unlink()
+        with open(self.common.path / "changelog.md", "a") as f:
+            f.write("### release\n")
+        self.common.commit("Process changelog")
+
+    def bump_common(self):
         sub = self.plugin.path / "common"
-        subprocess.run(["git", "fetch", "-q", "origin"], cwd=sub, check=True, env={**os.environ, **GIT_ENV})
-        subprocess.run(["git", "checkout", "-q", "origin/main"], cwd=sub, check=True, env={**os.environ, **GIT_ENV})
+        for args in (("fetch", "-q", "origin"), ("checkout", "-q", "origin/main")):
+            subprocess.run(["git", *args], cwd=sub, check=True, env={**os.environ, **GIT_ENV})
         self.plugin.commit("bump common")
 
     def run_script(self):
@@ -208,6 +217,44 @@ class ImportCommonChangelogTests(unittest.TestCase):
         self.advance_common({"fix-license.yaml": SECURITY}, process=True)
         self.run_script()
         self.assertEqual(self.pending_contents(), sorted([FIX, SECURITY]))
+
+    def test_imports_entries_released_on_a_merged_branch(self):
+        """Common releases on a branch that adds the entries and deletes them, then merges it: with
+        the default history simplification git skips that side of the merge entirely."""
+        self.common.git("checkout", "-q", "-b", "release/C")
+        self.common.write("changelog/fix-license.yaml", FIX)
+        self.common.commit("entry")
+        self.process_common({"fix-license.yaml": FIX})
+        self.common.git("checkout", "-q", "main")
+        self.common.write("src/other.php", "<?php\n")
+        self.common.commit("unrelated")
+        self.common.git("merge", "-q", "--no-ff", "--no-edit", "release/C")
+        self.bump_common()
+        proc = self.run_script()
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(self.pending(), {"common-fix-license.yaml": FIX})
+
+    def test_skips_an_entry_common_reverted(self):
+        """A deletion that is not a release means the change never shipped."""
+        self.advance_common({"fix-license.yaml": FIX, "fix-svul-113.yaml": SECURITY})
+        (self.common.path / "changelog/fix-license.yaml").unlink()
+        self.common.commit("Revert the license fix")
+        self.bump_common()
+        proc = self.run_script()
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(self.pending(), {"common-fix-svul-113.yaml": SECURITY})
+
+    def test_warns_when_a_newer_release_tag_is_not_merged_in(self):
+        """Two release branches open at once: the older one tagged, not yet merged into the newer."""
+        self.advance_common({"fix-license.yaml": FIX})
+        self.plugin.git("checkout", "-q", "-b", "release/T25")
+        self.plugin.write("src/x.php", "<?php\n")
+        self.plugin.commit("6.18.3")
+        self.plugin.git("tag", "6.18.3")
+        self.plugin.git("checkout", "-q", "main")
+        proc = self.run_script()
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("::warning::The newest release tag is 6.18.3", proc.stdout)
 
     def test_imports_the_last_edit_of_an_entry(self):
         edited = FIX.replace("fataling", "fataling on multisite")

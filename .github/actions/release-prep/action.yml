@@ -48,3 +48,5 @@ runs:
         version: ${{ inputs.version }}
         date: ${{ inputs.date }}
         token: ${{ inputs.token }}
+        # A release, not 'latest': the phar runs on the checkout, so it is pinned like the action.
+        pup-version: "2.0.0"

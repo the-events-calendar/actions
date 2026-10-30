@@ -15,7 +15,10 @@ runs:
     - name: Generate POT file
       shell: bash
       run: |
-        curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+        # A release with its checksum, not the builds branch's HEAD: the phar runs before the
+        # bot token is used in Release: Prep. Bump both lines together.
+        curl -fsSL -o wp-cli.phar https://github.com/wp-cli/wp-cli/releases/download/v2.12.0/wp-cli-2.12.0.phar
+        echo "be928f6b8ca1e8dfb9d2f4b75a13aa4aee0896f8a9a0a1c45cd5d2c98605e6172e6d014dda2e27f88c98befc16c040cbb2bd1bfa121510ea5cdf5f6a30fe8832  wp-cli.phar" | sha512sum -c -
         chmod +x wp-cli.phar
         mv wp-cli.phar /usr/local/bin/wp
         # Submodules are excluded as well as .distignore: common has its own text domain and its
