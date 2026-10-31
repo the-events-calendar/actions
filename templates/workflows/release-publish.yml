@@ -1,0 +1,191 @@
+name: "Release: Publish"
+
+# Tags a release branch and publishes its GitHub release, with the version's readme.txt changelog as
+# the notes and the production zip attached. Run it once the release pull request is merged.
+
+on:
+  workflow_dispatch:
+    inputs:
+      type:
+        description: 'Release type, used in the title: "<type> Release <version>"'
+        required: true
+        type: choice
+        options:
+          - Maintenance
+          - Feature
+          - Security
+          - Hotfix
+      version:
+        description: 'Version to tag and release, e.g. 6.18.3 or 6.18.2.1'
+        required: true
+        type: string
+      branch:
+        description: 'Branch the tag points at, e.g. release/T24.centaur'
+        required: true
+        type: string
+      zip-url:
+        description: 'HTTPS link to the production zip of this version, e.g. https://evnt.is/test.zip?file=the-events-calendar.6.18.3.zip. Empty publishes without a zip'
+        required: false
+        type: string
+      description:
+        description: 'Tag message. Empty uses the title'
+        required: false
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.version }}
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.branch }}
+          persist-credentials: false
+
+      - name: Read the title, zip name and changelog
+        id: prep
+        env:
+          TYPE: ${{ inputs.type }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+
+          if ! [[ "$VERSION" =~ ^[0-9]+(\.[0-9]+){2,3}$ ]]; then
+            echo "::error::The version must look like 6.18.3 or 6.18.2.1, got '${VERSION}'."
+            exit 1
+          fi
+
+          zip_name=$(jq -r '.zip_name // empty' .puprc 2>/dev/null || true)
+          zip_name="${zip_name:-${GITHUB_REPOSITORY#*/}}"
+
+          # The version's section of readme.txt, with "-" bullets like the releases so far, and
+          # the blank lines around it dropped.
+          notes="$RUNNER_TEMP/notes.md"
+          awk -v head="= [$VERSION]" '
+            { sub(/\r$/, "") }
+            index($0, head) == 1 { found = 1; next }
+            !found { next }
+            /^=/ { exit }
+            !NF { if (printed) blanks++; next }
+            { while (blanks) { print ""; blanks-- } sub(/^\* /, "- "); print; printed = 1 }
+          ' readme.txt > "$notes"
+
+          if [ ! -s "$notes" ]; then
+            echo "::error file=readme.txt::No changelog for ${VERSION} in readme.txt. Run \"Release: Prep\" on the branch first."
+            exit 1
+          fi
+
+          {
+            echo "title=${TYPE} Release ${VERSION}"
+            echo "zip-name=${zip_name}"
+            echo "notes=${notes}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Download and check the zip
+        id: zip
+        if: inputs.zip-url != ''
+        env:
+          ZIP_URL: ${{ inputs.zip-url }}
+          VERSION: ${{ inputs.version }}
+          ZIP_NAME: ${{ steps.prep.outputs.zip-name }}
+        run: |
+          set -euo pipefail
+
+          zip="$RUNNER_TEMP/${ZIP_NAME}.${VERSION}.zip"
+          curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --max-time 600 \
+            --output "$zip" "$ZIP_URL"
+          unzip -tq "$zip"
+
+          # The plugin header has to carry this version: attaching the previous release's zip is
+          # the mistake this catches.
+          if ! unzip -Z1 "$zip" | grep -E '^[^/]+/[^/]+\.php$' | xargs unzip -p "$zip" \
+            | grep -E "^[[:space:]*]*Version:[[:space:]]*${VERSION//./\\.}[[:space:]]*$" > /dev/null; then
+            echo "::error::The zip at that link is not version ${VERSION}: no plugin header in it says 'Version: ${VERSION}'."
+            exit 1
+          fi
+
+          echo "path=${zip}" >> "$GITHUB_OUTPUT"
+
+      # The bot token: the tag ruleset blocks tag creation for everyone off its bypass list.
+      - name: Tag and publish the release
+        id: publish
+        env:
+          GH_TOKEN: ${{ secrets.GHA_BOT_TOKEN_MANAGER }}
+          VERSION: ${{ inputs.version }}
+          DESCRIPTION: ${{ inputs.description }}
+          TITLE: ${{ steps.prep.outputs.title }}
+          NOTES: ${{ steps.prep.outputs.notes }}
+          ZIP: ${{ steps.zip.outputs.path }}
+        run: |
+          set -euo pipefail
+
+          # matching-refs answers an empty list for a missing tag, so an API error fails the run
+          # instead of passing for "no tag".
+          if [ -n "$(gh api "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/${VERSION}" \
+            --jq ".[] | select(.ref == \"refs/tags/${VERSION}\") | .ref")" ]; then
+            echo "::error::Tag ${VERSION} already exists."
+            exit 1
+          fi
+
+          # A hotfix on an older line must not take "Latest" from a newer release.
+          latest=$(gh release view --json tagName --jq .tagName 2>/dev/null || true)
+          make_latest=true
+          if [ -n "$latest" ] && [ "$(printf '%s\n' "$latest" "$VERSION" | sort -V | tail -n 1)" != "$VERSION" ]; then
+            make_latest=false
+          fi
+
+          sha=$(git rev-parse HEAD)
+          assets=()
+          if [ -n "$ZIP" ]; then
+            assets=("$ZIP")
+          fi
+
+          # Draft first: the zip upload is what most likely fails, and a draft can be thrown away,
+          # while the tag ruleset lets no one delete a tag. Until the tag exists, a failure deletes
+          # the draft so a rerun starts clean; after it, the draft is left to publish by hand.
+          drafted=
+          tagged=
+          trap 'status=$?
+            if [ "$status" -ne 0 ] && [ -n "$tagged" ]; then
+              echo "::error::Tag ${VERSION} was created but the release is still a draft. Publish the draft from the Releases page."
+            elif [ "$status" -ne 0 ] && [ -n "$drafted" ]; then
+              gh release delete "$VERSION" --yes || true
+            fi' EXIT
+
+          gh release create "$VERSION" --draft --target "$sha" --title "$TITLE" --notes-file "$NOTES" "${assets[@]}"
+          drafted=1
+
+          tag=$(gh api "repos/${GITHUB_REPOSITORY}/git/tags" -f tag="$VERSION" -f message="${DESCRIPTION:-$TITLE}" \
+            -f object="$sha" -f type=commit --jq .sha)
+          gh api "repos/${GITHUB_REPOSITORY}/git/refs" -f ref="refs/tags/${VERSION}" -f sha="$tag" > /dev/null
+          tagged=1
+
+          url=$(gh release edit "$VERSION" --draft=false --latest="$make_latest")
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Summary
+        env:
+          TITLE: ${{ steps.prep.outputs.title }}
+          URL: ${{ steps.publish.outputs.url }}
+          SHA: ${{ steps.publish.outputs.sha }}
+          ZIP: ${{ steps.zip.outputs.path }}
+        run: |
+          {
+            echo "## ${TITLE}"
+            echo "* Release: ${URL}"
+            echo "* Tagged commit: https://github.com/${GITHUB_REPOSITORY}/commit/${SHA}"
+            if [ -n "$ZIP" ]; then
+              echo "* Zip: \`$(basename "$ZIP")\`"
+            else
+              echo "* No zip attached"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
