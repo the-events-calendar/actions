@@ -42,6 +42,32 @@ The wrapper is pinned to a commit of the toolbox PR branch while we trial it
 branch, because the bot token is handed to that code. The existing `release-*` workflows stay in
 place until the trial is done.
 
+## Release publish
+
+`templates/workflows/release-publish.yml` tags the release and publishes its GitHub release, once
+the release pull request is merged. Run **Release: Publish** with:
+
+| Input | Example | Becomes |
+|---|---|---|
+| type | Maintenance, Feature, Security, Hotfix | the title, `Maintenance Release 6.18.3` |
+| version | `6.18.3` | the tag and the zip's name |
+| branch | `release/T24.centaur` | the commit the tag points at |
+| zip-url | `https://evnt.is/test.zip?file=the-events-calendar.6.18.3.zip` | the attached zip, named `<zip_name>.<version>.zip` from `.puprc`; empty attaches none |
+| description | optional | the tag message; empty uses the title |
+
+The release notes are the version's section of `readme.txt` on the branch, so release prep must
+have run there. The run fails before creating anything when that section is missing, the version
+is malformed, the tag exists, or the zip is not that version (no top-level PHP file in it has
+`Version: <version>` in its header).
+
+The release is created as a draft first, then the annotated tag, then the release is published:
+the tag ruleset blocks tag deletion, so the zip upload happens before the tag exists. A failure
+before the tag deletes the draft, so a rerun starts clean; a failure after it leaves the draft to
+publish by hand. A version lower than the current latest release (a hotfix on an older line) is
+published without taking "Latest". That ruleset
+also blocks tag creation, so `tec-bot` (`GHA_BOT_TOKEN_MANAGER`) must be on its bypass list in each
+repository. Tags made here are signed by no one; a hand-made SSH-signed tag is not.
+
 ## WordPress test matrix
 
 `.github/actions/wp-test-matrix` returns the most recent WordPress X.Y releases

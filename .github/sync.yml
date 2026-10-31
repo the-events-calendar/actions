@@ -55,6 +55,8 @@ group:
         dest: .github/workflows/release-replace-tbd-entries.yml
       - source: templates/workflows/release-prep.yml
         dest: .github/workflows/release-prep.yml
+      - source: templates/workflows/release-publish.yml
+        dest: .github/workflows/release-publish.yml
       - source: templates/workflows/link-project.yml
         dest: .github/workflows/link-project.yml
       - source: templates/workflows/phpcs.yml
