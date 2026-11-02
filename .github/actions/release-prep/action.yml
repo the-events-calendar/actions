@@ -40,6 +40,14 @@ outputs:
 runs:
   using: composite
   steps:
+    # Before the toolbox, which runs pup and commits in one action: npm rejects a four-part version
+    # in package.json. keep-package-version.sh documents how.
+    - name: "Keep package.json on semver"
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+      run: bash "$GITHUB_ACTION_PATH/keep-package-version.sh"
+
     - name: "Prepare the release branch"
       id: prep
       uses: stellarwp/plugin-toolbox/.github/actions/release-prep@cf4fb51f0114341c7cf509d58e802adadb5fdf15 # main
