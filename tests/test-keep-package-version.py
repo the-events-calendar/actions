@@ -51,9 +51,9 @@ class KeepPackageVersionTests(unittest.TestCase):
     def staged(self, name):
         return self.git("show", f":{name}")
 
-    def test_a_four_part_version_commits_its_semver_form_in_package_json(self):
+    def test_a_four_part_version_commits_its_three_part_start_in_package_json(self):
         self.prepare("5.30.3.1")
-        self.assertEqual(self.staged("package.json"), PACKAGE % "5.30.3+1")
+        self.assertEqual(self.staged("package.json"), PACKAGE % "5.30.3")
         self.assertEqual(self.staged("event-tickets.php"), " * Version: 5.30.3.1\n")
 
     def test_a_branch_already_holding_a_four_part_package_version_is_put_back(self):
@@ -61,11 +61,11 @@ class KeepPackageVersionTests(unittest.TestCase):
         (self.path / "package.json").write_text(PACKAGE % "5.30.3.1")
         self.git("commit", "-q", "-am", "broken prep")
         self.prepare("5.30.3.1")
-        self.assertEqual(self.staged("package.json"), PACKAGE % "5.30.3+1")
+        self.assertEqual(self.staged("package.json"), PACKAGE % "5.30.3")
 
-    def test_a_second_security_release_counts_on(self):
+    def test_a_later_security_release_keeps_the_same_start(self):
         self.prepare("5.30.3.12")
-        self.assertEqual(self.staged("package.json"), PACKAGE % "5.30.3+12")
+        self.assertEqual(self.staged("package.json"), PACKAGE % "5.30.3")
 
     def test_a_three_part_version_is_left_to_pup(self):
         self.prepare("5.31.0")

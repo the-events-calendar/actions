@@ -42,7 +42,7 @@ runs:
   steps:
     # Before the toolbox, which runs pup and commits in one action: npm rejects a four-part version
     # in package.json. keep-package-version.sh documents how.
-    - name: "Keep package.json on semver"
+    - name: "Keep package.json on three parts"
       shell: bash
       env:
         VERSION: ${{ inputs.version }}

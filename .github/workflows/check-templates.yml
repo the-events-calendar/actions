@@ -82,7 +82,7 @@ jobs:
       - name: Check the release prep wiring
         run: python3 tests/test-release-prep.py
 
-      - name: Check package.json stays semver on a four-part release
+      - name: Check package.json keeps three parts on a four-part release
         run: python3 tests/test-keep-package-version.py
 
       - name: Check the common changelog import
