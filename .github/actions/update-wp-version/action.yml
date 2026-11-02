@@ -1,0 +1,30 @@
+name: "Update the WordPress version"
+description: "Sets the 'Tested up to' WordPress version and, optionally, the minimum two minors behind it"
+
+# The logic lives in update-wp-version.sh so "Release: Update WordPress Version" and
+# "Release: Prep" run the same copy, and tests/test-wp-version-math.py tests that copy.
+
+inputs:
+  tested-up-to:
+    description: "WordPress version to set as 'Tested up to', e.g. 6.8 or 6.8.1"
+    required: true
+  update-min-version:
+    description: "'yes' to also set 'Requires at least' two minor versions behind, e.g. 6.8.1 -> 6.6"
+    required: false
+    default: "no"
+
+outputs:
+  min-version:
+    description: "The minimum version written. Empty when update-min-version is not 'yes'"
+    value: ${{ steps.update.outputs.MIN_VERSION }}
+
+runs:
+  using: composite
+  steps:
+    - name: "Update the WordPress version"
+      id: update
+      shell: bash
+      env:
+        TESTED_UP_TO: ${{ inputs.tested-up-to }}
+        UPDATE_MIN_VERSION: ${{ inputs.update-min-version }}
+      run: bash "$GITHUB_ACTION_PATH/update-wp-version.sh"

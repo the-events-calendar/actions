@@ -1,0 +1,14 @@
+name: "Import common's changelog entries"
+description: "Copies the changelog entries common gained since the last release into the plugin's changelog/"
+
+# For the plugins that bundle common, TEC and ET, so their release notes name the common changes
+# they ship. A plugin without a common submodule imports nothing. The checkout needs full history,
+# tags and the submodules: fetch-depth: 0 and submodules: recursive.
+# import-common-changelog.sh documents the rules; tests/test-import-common-changelog.py tests them.
+
+runs:
+  using: composite
+  steps:
+    - name: "Import common's changelog entries"
+      shell: bash
+      run: bash "$GITHUB_ACTION_PATH/import-common-changelog.sh"

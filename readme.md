@@ -31,15 +31,27 @@ service would only give its developers instructions that do not apply.
 
 ## Release prep
 
-`templates/workflows/release-prep.yml` bumps the version, replaces the TBDs and writes the
-changelog on a release branch in one run, committing straight to the branch through the GitHub
-API. It calls `.github/actions/release-prep`, a thin wrapper around the
-[plugin-toolbox release-prep action](https://github.com/stellarwp/plugin-toolbox/tree/main/.github/actions/release-prep),
-whose README documents what it changes and what it refuses.
+`templates/workflows/release-prep.yml` prepares a release branch in one run and one commit,
+made straight to the branch through the GitHub API, in this order:
 
-The wrapper is pinned to a commit of the toolbox PR branch while we trial it
-([stellarwp/plugin-toolbox#8](https://github.com/stellarwp/plugin-toolbox/pull/8)), not to the
-branch, because the bot token is handed to that code. The existing `release-*` workflows stay in
+1. Checks the version is `x.y.z` or `x.y.z.n`.
+2. Optionally sets "Tested up to" and "Requires at least" (`.github/actions/update-wp-version`).
+3. In TEC and ET, copies the changelog entries common gained since the last release tag,
+   except Language and Version ones (`.github/actions/import-common-changelog`).
+4. Regenerates the POT and, on `release/*` when the strings changed, pushes it to GlotPress and
+   adds the Language entry.
+5. Bumps the version, replaces the TBDs in `.puprc`'s `checks.tbd.dirs`, writes the changelog
+   and commits everything above, through
+   `.github/actions/release-prep`, a thin wrapper around the
+   [plugin-toolbox release-prep action](https://github.com/stellarwp/plugin-toolbox/tree/main/.github/actions/release-prep),
+   whose README documents what it changes and what it refuses.
+
+Running it again on a prepared branch changes nothing. Steps 2 and 4 reuse the actions behind
+"Release: Update WordPress Version" and "Release: Sync Translations", which stay for running one
+step on its own.
+
+The wrapper is pinned to a commit of the toolbox's `main`, not to the branch, because the bot
+token is handed to that code. The existing `release-*` workflows stay in
 place until the trial is done.
 
 ## WordPress test matrix

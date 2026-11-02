@@ -27,7 +27,9 @@ runs:
         echo "## Build UUID: \`$build_uuid\`" >> $GITHUB_STEP_SUMMARY
 
     - name: Deploy POT file to translations.stellarwp.com
-      uses: burnett01/rsync-deployments@7.0.1
+      # SHA-pinned: these actions receive the deploy key, and Release: Prep runs them in the job
+      # that later hands the bot token to the toolbox. Bump the SHA to pick up a new release.
+      uses: burnett01/rsync-deployments@796cf0d5e4b535745ce49d7429f77cf39e25ef39 # 7.0.1
       with:
         switches: -avz --omit-dir-times --no-perms
         path: ${{ inputs.pot_path }}
@@ -37,7 +39,7 @@ runs:
         remote_key: ${{ env.TRANSLATIONS_DEPLOY_SSH_KEY }}
 
     - name: SSH to Translations StellarWP Website
-      uses: appleboy/ssh-action@v1.1.0
+      uses: appleboy/ssh-action@25ce8cbbcb08177468c7ff7ec5cbfa236f9341e1 # v1.1.0
       with:
         host: ${{ env.TRANSLATIONS_DEPLOY_HOST }}
         username: ${{ env.TRANSLATIONS_DEPLOY_USER }}
@@ -52,14 +54,16 @@ runs:
       id: fetch-results
       shell: bash
       run: |
-        results_from_glotpress=$(curl -s https://translations.stellarwp.com/bot-output/${{ inputs.plugin_slug }}-${{ steps.generate.outputs.build_uuid }})
+        results_from_glotpress=$(curl -fsS https://translations.stellarwp.com/bot-output/${{ inputs.plugin_slug }}-${{ steps.generate.outputs.build_uuid }})
 
-        echo "glotpress-results=$results_from_glotpress" >> $GITHUB_OUTPUT
+        # A heredoc with a random delimiter: a multi-line result cannot add or override outputs.
+        delimiter="glotpress-$RANDOM$RANDOM"
+        printf 'glotpress-results<<%s\n%s\n%s\n' "$delimiter" "$results_from_glotpress" "$delimiter" >> "$GITHUB_OUTPUT"
         echo "## Results from GlotPress" >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`$results_from_glotpress\`\`\`" >> $GITHUB_STEP_SUMMARY
 
     - name: Clean Bot Output
-      uses: appleboy/ssh-action@v1.1.0
+      uses: appleboy/ssh-action@25ce8cbbcb08177468c7ff7ec5cbfa236f9341e1 # v1.1.0
       with:
         host: ${{ env.TRANSLATIONS_DEPLOY_HOST }}
         username: ${{ env.TRANSLATIONS_DEPLOY_USER }}
