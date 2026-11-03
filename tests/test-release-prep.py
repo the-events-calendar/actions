@@ -60,6 +60,14 @@ class ReleasePrepTests(unittest.TestCase):
                      "- name: Generate the POT file", "- name: Add the language changelog entry"):
             self.assertLess(workflow.index(step), prep, step)
 
+    def test_the_language_entry_is_written_after_the_others(self):
+        """The changelogger sorts one write by type; a second write appends, so Language lands last."""
+        workflow = WORKFLOW.read_text()
+        write = workflow.index("- name: Write the changelog before the language entry")
+        self.assertLess(workflow.index("- name: Import common's changelog entries"), write)
+        self.assertLess(write, workflow.index("- name: Add the language changelog entry"))
+        self.assertRegex(workflow, r"uses: stellarwp/changelogger@[0-9a-f]{40}\b")
+
     def test_the_version_is_checked_before_anything_is_written(self):
         workflow = WORKFLOW.read_text()
         check = workflow.index("- name: Check the version")
