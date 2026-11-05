@@ -88,6 +88,9 @@ jobs:
       - name: Check the release wiring
         run: python3 tests/test-release.py
 
+      - name: Check the release merge
+        run: python3 tests/test-release-merge.py
+
       - name: Check package.json keeps three parts on a four-part release
         run: python3 tests/test-keep-package-version.py
 
