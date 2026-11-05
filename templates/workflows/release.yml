@@ -103,10 +103,15 @@ jobs:
           # repository anyone can approve, so only people in the organization or added to the
           # repository count, and no bot. GitHub already refuses an author's approval of their own PR.
           approvers=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${pr}/reviews" \
-            | jq -rs --arg sha "$SHA" 'add | map(select(.state != "COMMENTED" and .state != "PENDING"))
-              | group_by(.user.id) | map(last) | map(select(.state == "APPROVED" and .commit_id == $sha))
-              | map(select(.user.type != "Bot" and (.author_association | IN("OWNER", "MEMBER", "COLLABORATOR"))))
-              | map(.user.login) | join(", ")')
+          latest=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${pr}/reviews" \
+            | jq -s 'add | map(select(.state != "COMMENTED" and .state != "PENDING"))
+              | group_by(.user.id) | map(last)')
+          blockers=$(jq -r 'map(select(.state == "CHANGES_REQUESTED") | .user.login) | join(", ")' <<< "$latest")
+          if [ -n "$blockers" ]; then
+            echo "::error::Pull request #${pr} has changes requested by ${blockers}. Resolve them, then start the run again."
+            exit 1
+          fi
+          approvers=$(jq -r --arg sha "$SHA" 'map(select(.state == "APPROVED" and .commit_id == $sha)) | map(.user.login) | join(", ")' <<< "$latest")
           if [ -z "$approvers" ]; then
             echo "::error::Pull request #${pr} has no approval of ${SHA}, the commit this run is on. Get it approved at the branch's tip, then start the run again."
             exit 1
