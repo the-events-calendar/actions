@@ -101,10 +101,11 @@ jobs:
           # Each reviewer's latest approving or blocking review, as GitHub counts them: a later
           # "changes requested" or a dismissal replaces an approval, a comment does not. On a public
           # repository anyone can approve, so only people in the organization or added to the
-          # repository count, and no bot. GitHub already refuses an author's approval of their own PR.
-          approvers=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${pr}/reviews" \
+          # repository count, and no bot, for an approval and for a block alike: an outsider must not
+          # be able to stop a release either. GitHub already refuses an author's approval of their own PR.
           latest=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${pr}/reviews" \
             | jq -s 'add | map(select(.state != "COMMENTED" and .state != "PENDING"))
+              | map(select(.user.type != "Bot" and (.author_association | IN("OWNER", "MEMBER", "COLLABORATOR"))))
               | group_by(.user.id) | map(last)')
           blockers=$(jq -r 'map(select(.state == "CHANGES_REQUESTED") | .user.login) | join(", ")' <<< "$latest")
           if [ -n "$blockers" ]; then

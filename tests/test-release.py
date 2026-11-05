@@ -6,6 +6,8 @@ Run: python3 tests/test-release.py
 
 from pathlib import Path
 import re
+import subprocess
+import textwrap
 import unittest
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -93,6 +95,8 @@ class ReleaseTests(unittest.TestCase):
         # main keeps an approval after a push: the approval has to be of this very commit.
         self.assertIn('.state == "APPROVED" and .commit_id == $sha', step)
         self.assertIn("group_by(.user.id) | map(last)", step)
+        # A reviewer's latest review requesting changes stops the run.
+        self.assertIn('.state == "CHANGES_REQUESTED"', step)
         self.assertNotIn("reviewDecision", step)
         # Anyone can approve on a public repository: only the org's people count, never a bot.
         self.assertIn('.user.type != "Bot"', step)
@@ -108,6 +112,15 @@ class ReleaseTests(unittest.TestCase):
 
     def test_readme_says_the_zip_is_optional(self):
         self.assertIn("only when `zip-url` is given", (ROOT / "readme.md").read_text())
+
+    def test_every_run_script_is_valid_bash(self):
+        """String checks miss a broken line, such as a suggestion applied over an old one."""
+        for name, step in STEPS.items():
+            if "        run: |\n" not in step:
+                continue
+            script = textwrap.dedent(step.split("        run: |\n", 1)[1])
+            result = subprocess.run(["bash", "-n"], input=script, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, f"{name}: {result.stderr}")
 
     def test_zip_stays_inside_the_checkout(self):
         """release-publish reads assets relative to the checkout."""
