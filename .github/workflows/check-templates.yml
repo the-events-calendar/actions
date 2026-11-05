@@ -20,6 +20,8 @@ on:
       - '.github/actionlint.yaml'
       - '.github/actions/verify-openspec-plan/**'
       - '.github/actions/release-prep/**'
+      - '.github/actions/release-merge/**'
+      - '.github/actions/release-publish/**'
       - '.github/actions/generate-pot/**'
       - '.github/actions/push-translations/**'
       - '.github/actions/add-changelog/**'
@@ -81,6 +83,9 @@ jobs:
 
       - name: Check the release prep wiring
         run: python3 tests/test-release-prep.py
+
+      - name: Check the release wiring
+        run: python3 tests/test-release.py
 
       - name: Check package.json keeps three parts on a four-part release
         run: python3 tests/test-keep-package-version.py

@@ -54,6 +54,18 @@ The wrapper is pinned to a commit of the toolbox's `main`, not to the branch, be
 token is handed to that code. The existing `release-*` workflows stay in
 place until the trial is done.
 
+## Release
+
+`templates/workflows/release.yml` merges a release and publishes it, run on the release branch:
+the release branch into `main`, `main` back into `develop`, then the GitHub release at the merged
+commit with the version's `readme.txt` changelog as the notes and the production zip attached
+(checked to carry that version first). The merging and publishing are the toolbox's
+[release-merge](https://github.com/stellarwp/plugin-toolbox/tree/main/.github/actions/release-merge)
+and [release-publish](https://github.com/stellarwp/plugin-toolbox/tree/main/.github/actions/release-publish),
+through the wrappers `.github/actions/release-merge` and `.github/actions/release-publish`, pinned
+to a commit of the toolbox's `main` like `release-prep`. The workflow runs with the bot token,
+which is on the tag ruleset's bypass list.
+
 ## WordPress test matrix
 
 `.github/actions/wp-test-matrix` returns the most recent WordPress X.Y releases
