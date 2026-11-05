@@ -1,9 +1,10 @@
 name: "Release"
 
-# Merges a release and publishes it on GitHub: the release branch into main, main back into develop,
-# then the GitHub release for the version at the merged commit, with the production zip attached
-# and the version's readme.txt changelog as the notes. Run it on the release branch once the
-# release pull request is approved.
+# Merges a release and publishes it on GitHub: the release branch into main, then the GitHub release
+# for the version at the merged commit, with the production zip attached and the version's
+# readme.txt changelog as the notes. Nothing is merged back into develop: we work with release
+# branches. Set develop-branch on the merge step for a repository that keeps one. Run it on the
+# release branch once the release pull request is approved.
 #
 # The merging and publishing are the toolbox's, through our wrappers in .github/actions, which pin
 # it to a commit. The zip check and the notes are ours.
@@ -50,27 +51,34 @@ jobs:
       - name: Check that the run is on the release branch it merges
         env:
           BRANCH: ${{ inputs.branch }}
+          VERSION: ${{ inputs.version }}
         run: |
           if [ "$BRANCH" != "$GITHUB_REF_NAME" ]; then
             echo "::error::This run is on '$GITHUB_REF_NAME' but was asked to release '$BRANCH'. Start it on the release branch."
             exit 1
           fi
 
-      - name: Merge the release
-        id: merge
-        uses: the-events-calendar/actions/.github/actions/release-merge@main
-        with:
-          branch: ${{ inputs.branch }}
-          # A push to the branch after the run started is refused rather than merged unreviewed.
-          head: ${{ github.sha }}
-          version: ${{ inputs.version }}
-          # The bot token: the tag ruleset and the branch rules block everyone off their bypass list.
-          token: ${{ secrets.GHA_BOT_TOKEN_MANAGER }}
+          # The bot token bypasses the branch rules: any other branch would reach main unreviewed.
+          case "$BRANCH" in
+            release/*) ;;
+            *)
+              echo "::error::'$BRANCH' is not a release branch. Only release/* branches are merged."
+              exit 1
+              ;;
+          esac
 
-      - name: Checkout the merged commit
+          # Checked here, not only by the toolbox: the steps before the merge read it too.
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "::error::'$VERSION' is not a version: three or four numeric parts, e.g. 6.18.3 or 6.18.2.1."
+            exit 1
+          fi
+
+      # The changelog and the zip are checked before the merge, so a mistake stops the run before
+      # main is touched. github.sha is the commit release-merge refuses to merge past.
+      - name: Checkout the release branch at the commit the run started on
         uses: actions/checkout@v7
         with:
-          ref: ${{ steps.merge.outputs.base-sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Read the title, zip name and changelog
@@ -83,6 +91,19 @@ jobs:
 
           zip_name=$(jq -r '.zip_name // empty' .puprc 2>/dev/null || true)
           zip_name="${zip_name:-${GITHUB_REPOSITORY#*/}}"
+          # It becomes a path and a $GITHUB_OUTPUT line: no slashes, no newlines.
+          if ! [[ "$zip_name" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "::error file=.puprc::zip_name '${zip_name}' has to be a plain file name."
+            exit 1
+          fi
+
+          # The plugin's main file: the root-level PHP file .puprc lists under paths.versions.
+          main_file=$(jq -r '[.paths.versions[]?.file | select(test("^[^/]+\\.php$"))] | first // empty' .puprc 2>/dev/null || true)
+          main_file="${main_file:-${zip_name}.php}"
+          if ! [[ "$main_file" =~ ^[A-Za-z0-9._-]+\.php$ ]]; then
+            echo "::error file=.puprc::The main plugin file '${main_file}' has to be a plain file name."
+            exit 1
+          fi
 
           # The version's section of readme.txt, with "-" bullets, and the blank lines around it dropped.
           notes="$RUNNER_TEMP/notes.md"
@@ -103,6 +124,7 @@ jobs:
           {
             echo "title=${TYPE} Release ${VERSION}"
             echo "zip-name=${zip_name}"
+            echo "main-file=${main_file}"
             echo "notes=${notes}"
           } >> "$GITHUB_OUTPUT"
 
@@ -113,6 +135,7 @@ jobs:
           ZIP_URL: ${{ inputs.zip-url }}
           VERSION: ${{ inputs.version }}
           ZIP_NAME: ${{ steps.prep.outputs.zip-name }}
+          MAIN_FILE: ${{ steps.prep.outputs.main-file }}
         run: |
           set -euo pipefail
 
@@ -122,15 +145,34 @@ jobs:
             --output "$zip" "$ZIP_URL"
           unzip -tq "$zip"
 
+          # Exactly one <plugin dir>/<main file> in the zip: another PHP file carrying the version,
+          # or no main file at all, must not pass.
+          main="${ZIP_NAME}/${MAIN_FILE}"
+          if [ "$(unzip -Z1 "$zip" | grep -Fxc -e "$main" || true)" != 1 ]; then
+            echo "::error::The zip at that link has no ${main}, the plugin's main file."
+            exit 1
+          fi
+
           # The plugin header has to carry this version: attaching the previous release's zip is
           # the mistake this catches.
-          if ! unzip -Z1 "$zip" | grep -E '^[^/]+/[^/]+\.php$' | xargs unzip -p "$zip" \
+          if ! unzip -p "$zip" "$main" \
             | grep -E "^[[:space:]*]*Version:[[:space:]]*${VERSION//./\\.}[[:space:]]*$" > /dev/null; then
-            echo "::error::The zip at that link is not version ${VERSION}: no plugin header in it says 'Version: ${VERSION}'."
+            echo "::error::The zip at that link is not version ${VERSION}: ${main} does not say 'Version: ${VERSION}'."
             exit 1
           fi
 
           echo "path=${zip}" >> "$GITHUB_OUTPUT"
+
+      - name: Merge the release
+        id: merge
+        uses: the-events-calendar/actions/.github/actions/release-merge@main
+        with:
+          branch: ${{ inputs.branch }}
+          # A push to the branch after the run started is refused rather than merged unreviewed.
+          head: ${{ github.sha }}
+          version: ${{ inputs.version }}
+          # The bot token: the tag ruleset and the branch rules block everyone off their bypass list.
+          token: ${{ secrets.GHA_BOT_TOKEN_MANAGER }}
 
       - name: Publish the GitHub release
         uses: the-events-calendar/actions/.github/actions/release-publish@main

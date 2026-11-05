@@ -11,6 +11,11 @@ import unittest
 ROOT = Path(__file__).resolve().parent.parent
 WORKFLOW = ROOT / "templates/workflows/release.yml"
 WRAPPERS = {a: ROOT / f".github/actions/{a}/action.yml" for a in ("release-merge", "release-publish")}
+# Each step's text, keyed by its name: the body runs to the next step.
+STEPS = {
+    m.group(1): m.group(0)
+    for m in re.finditer(r"      - name: (.+)\n(?:(?!      - name: ).*\n?)*", WORKFLOW.read_text())
+}
 
 
 class ReleaseTests(unittest.TestCase):
@@ -25,6 +30,11 @@ class ReleaseTests(unittest.TestCase):
         for name in WRAPPERS:
             self.assertIn(f"uses: the-events-calendar/actions/.github/actions/{name}@main", workflow)
         self.assertNotIn("stellarwp/plugin-toolbox", workflow)
+
+    def test_nothing_is_merged_back_unless_asked(self):
+        """We work with release branches: develop-branch defaults to empty, which skips the second merge."""
+        text = WRAPPERS["release-merge"].read_text()
+        self.assertRegex(text, r'develop-branch:\n(?:    .*\n)*?    default: ""')
 
     def test_the_job_never_writes_with_the_github_token(self):
         self.assertNotIn("contents: write", WORKFLOW.read_text())
@@ -42,6 +52,37 @@ class ReleaseTests(unittest.TestCase):
         workflow = WORKFLOW.read_text()
         self.assertIn("target: ${{ steps.merge.outputs.base-sha }}", workflow)
         self.assertLess(workflow.index("- name: Download and check the zip"), workflow.index("- name: Publish the GitHub release"))
+
+    def test_only_release_branches_are_merged(self):
+        """The bot token bypasses the branch rules, so any other branch would reach main unreviewed."""
+        guard = STEPS["Check that the run is on the release branch it merges"]
+        self.assertIn('release/*) ;;', guard)
+
+    def test_version_is_checked_before_anything_reads_it(self):
+        guard = STEPS["Check that the run is on the release branch it merges"]
+        self.assertIn(r'^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$', guard)
+
+    def test_notes_and_zip_are_checked_before_the_merge(self):
+        """A missing changelog or a wrong zip stops the run before main is touched."""
+        workflow = WORKFLOW.read_text()
+        merge = workflow.index("- name: Merge the release")
+        self.assertLess(workflow.index("- name: Read the title, zip name and changelog"), merge)
+        self.assertLess(workflow.index("- name: Download and check the zip"), merge)
+
+    def test_checks_read_the_commit_that_is_merged(self):
+        checkout = STEPS["Checkout the release branch at the commit the run started on"]
+        self.assertIn("ref: ${{ github.sha }}", checkout)
+
+    def test_zip_version_is_read_from_the_main_plugin_file(self):
+        """Another PHP file, or no file at all, must not satisfy the check."""
+        step = STEPS["Download and check the zip"]
+        self.assertNotIn("xargs", step)
+        self.assertIn("MAIN_FILE", step)
+        self.assertIn("select(test(\"^[^/]+\\\\.php$\"))", STEPS["Read the title, zip name and changelog"])
+
+    def test_zip_name_is_a_plain_file_name(self):
+        """It comes from .puprc and becomes a path and a $GITHUB_OUTPUT line."""
+        self.assertIn("^[A-Za-z0-9._-]+$", STEPS["Read the title, zip name and changelog"])
 
     def test_zip_stays_inside_the_checkout(self):
         """release-publish reads assets relative to the checkout."""

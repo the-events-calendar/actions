@@ -23,9 +23,9 @@ inputs:
     required: false
     default: "main"
   develop-branch:
-    description: "The branch the base is merged back into. Write an empty value in the caller to skip it"
+    description: "The branch the base is merged back into. Empty by default: we work with release branches, so nothing is merged back"
     required: false
-    default: "develop"
+    default: ""
   token:
     description: "Token the merges are made with. Needs contents: write on the repository"
     required: true
