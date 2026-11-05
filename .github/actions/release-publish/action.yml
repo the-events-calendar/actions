@@ -1,0 +1,56 @@
+name: "Release publish"
+description: "Publishes the GitHub release for a version at a commit, with a title, notes and assets"
+
+# A thin wrapper so the product repos call our actions repo, while the work happens in the toolbox's
+# release-publish action. Its README documents the inputs and what it refuses.
+#
+# Pinned to a commit of the toolbox's main, never the branch itself: the bot token is handed to
+# this code, and a branch can change under us. Bump the SHA to pick up new commits.
+
+inputs:
+  version:
+    description: "The version to tag and release, e.g. 6.18.3 or 6.18.2.1"
+    required: true
+  target:
+    description: "The commit to publish at. After release-merge, its base-sha output"
+    required: true
+  title:
+    description: "The release title. The version when empty"
+    required: false
+    default: ""
+  notes-file:
+    description: "A file in the checkout holding the release notes. Empty lets GitHub generate them"
+    required: false
+    default: ""
+  files:
+    description: "Assets to attach, one path per line, relative to the checkout"
+    required: false
+    default: ""
+  token:
+    description: "Token the release is created with. Needs contents: write, and to be on the tag ruleset's bypass list"
+    required: true
+
+outputs:
+  published:
+    description: "true when the release was created, skipped when it already existed"
+    value: ${{ steps.publish.outputs.published }}
+  release-url:
+    description: "The GitHub release page"
+    value: ${{ steps.publish.outputs.release-url }}
+  sha:
+    description: "The commit the release was created at. Empty when it already existed"
+    value: ${{ steps.publish.outputs.sha }}
+
+runs:
+  using: composite
+  steps:
+    - name: "Publish the release"
+      id: publish
+      uses: stellarwp/plugin-toolbox/.github/actions/release-publish@184de04ef58e876aa02ee8d62b22fe8324f87f68 # main
+      with:
+        version: ${{ inputs.version }}
+        target: ${{ inputs.target }}
+        title: ${{ inputs.title }}
+        notes-file: ${{ inputs.notes-file }}
+        files: ${{ inputs.files }}
+        token: ${{ inputs.token }}
