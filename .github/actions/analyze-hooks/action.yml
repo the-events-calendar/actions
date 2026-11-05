@@ -1,0 +1,21 @@
+name: "Add hook and view changelog entries"
+description: "Files the actions and filters a release adds or removes, and the views it changes, as pending changelog entries"
+
+# Diffs src/ against the last release tag and greps the diff, as `tut analyze` did, without
+# depending on tut. analyze-hooks.ts documents the rules; tests/test-analyze-hooks.py tests them.
+# The checkout needs full history and tags: fetch-depth: 0. Run it before the changelog is
+# written, so the entries are processed with the rest.
+
+runs:
+  using: composite
+  steps:
+    # Node 24 runs TypeScript directly (type stripping), so there is nothing to build or install.
+    - name: Set up Node
+      uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      with:
+        node-version: '24'
+        package-manager-cache: false
+
+    - name: Add the hook and view changelog entries
+      shell: bash
+      run: node "$GITHUB_ACTION_PATH/analyze-hooks.ts"

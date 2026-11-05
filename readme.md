@@ -38,15 +38,18 @@ made straight to the branch through the GitHub API, in this order:
 2. Optionally sets "Tested up to" and "Requires at least" (`.github/actions/update-wp-version`).
 3. In TEC and ET, copies the changelog entries common gained since the last release tag,
    except Language and Version ones (`.github/actions/import-common-changelog`).
-4. Regenerates the POT and, on `release/*` when the strings changed, pushes it to GlotPress and
+4. Adds a Tweak entry for each group of actions and filters the release adds or removes and
+   for the views it changes, from `.github/actions/analyze-hooks`, which diffs
+   `src/` against the last release tag.
+5. Regenerates the POT and, on `release/*` when the strings changed, pushes it to GlotPress and
    adds the Language entry.
-5. Bumps the version, replaces the TBDs in `.puprc`'s `checks.tbd.dirs`, writes the changelog
+6. Bumps the version, replaces the TBDs in `.puprc`'s `checks.tbd.dirs`, writes the changelog
    and commits everything above, through
    `.github/actions/release-prep`, a thin wrapper around the
    [plugin-toolbox release-prep action](https://github.com/stellarwp/plugin-toolbox/tree/main/.github/actions/release-prep),
    whose README documents what it changes and what it refuses.
 
-Running it again on a prepared branch changes nothing. Steps 2 and 4 reuse the actions behind
+Running it again on a prepared branch changes nothing. Steps 2 and 5 reuse the actions behind
 "Release: Update WordPress Version" and "Release: Sync Translations", which stay for running one
 step on its own.
 

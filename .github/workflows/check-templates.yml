@@ -25,6 +25,7 @@ on:
       - '.github/actions/add-changelog/**'
       - '.github/actions/update-wp-version/**'
       - '.github/actions/import-common-changelog/**'
+      - '.github/actions/analyze-hooks/**'
       - 'tests/**'
   push:
     branches:
@@ -93,6 +94,9 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
+
+      - name: Check the hook and view changelog entries
+        run: python3 tests/test-analyze-hooks.py
 
       - name: Install the pinned OpenSpec validator
         run: |

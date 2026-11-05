@@ -37,7 +37,7 @@ class ReleasePrepTests(unittest.TestCase):
 
     def test_third_party_actions_on_the_way_to_the_commit_are_pinned(self):
         """They run in the job that hands the bot token to the toolbox, so a tag must not move."""
-        for action in ("push-translations", "generate-pot", "add-changelog"):
+        for action in ("push-translations", "generate-pot", "add-changelog", "analyze-hooks"):
             text = (ROOT / ".github/actions" / action / "action.yml").read_text()
             for ref in re.findall(r"uses:\s*(\S+)", text):
                 if ref.startswith("./") or ref.startswith("the-events-calendar/"):
@@ -59,7 +59,7 @@ class ReleasePrepTests(unittest.TestCase):
         workflow = WORKFLOW.read_text()
         prep = workflow.index("- name: Prepare the release branch")
         for step in ("- name: Check the version", "- name: Update the WordPress version",
-                     "- name: Import common's changelog entries",
+                     "- name: Import common's changelog entries", "- name: Add the hook and view changelog entries",
                      "- name: Generate the POT file", "- name: Add the language changelog entry"):
             self.assertLess(workflow.index(step), prep, step)
 
@@ -68,6 +68,7 @@ class ReleasePrepTests(unittest.TestCase):
         workflow = WORKFLOW.read_text()
         write = workflow.index("- name: Write the changelog before the language entry")
         self.assertLess(workflow.index("- name: Import common's changelog entries"), write)
+        self.assertLess(workflow.index("- name: Add the hook and view changelog entries"), write)
         self.assertLess(write, workflow.index("- name: Add the language changelog entry"))
         self.assertRegex(workflow, r"uses: stellarwp/changelogger@[0-9a-f]{40}\b")
 
