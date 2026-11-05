@@ -93,6 +93,31 @@ class AnalyzeHooksTests(unittest.TestCase):
         for name in ("tec_moved", "tec_kept", "dynamic", "variable"):
             self.assertNotIn(name, listed)
 
+    def test_a_name_built_by_concatenation_is_not_a_hook(self):
+        self.write("src/Tribe/Concat.php", "<?php\n$a = apply_filters( 'tec_' . $name, $a );\n")
+        self.commit("concat")
+        self.run_script()
+        self.assertNotIn("`tec_`", "".join(self.entries().values()))
+
+    def test_a_hook_with_another_call_left_in_src_is_neither_added_nor_removed(self):
+        """The diff shows one occurrence; the whole tree decides."""
+        self.write("src/Tribe/Twin.php", "<?php\n$a = apply_filters( 'tec_twin', $a );\n")
+        self.commit("twin")
+        self.git("tag", "6.18.3")
+        self.write("src/Tribe/Twin.php", "<?php\n")
+        self.write("src/Tribe/Main.php", AFTER + "$g = apply_filters( 'tec_twin', $g );\n")
+        self.commit("move the twin")
+        self.run_script()
+        self.assertNotIn("tec_twin", "".join(self.entries().values()))
+
+    def test_an_entry_from_an_earlier_run_is_removed_when_its_change_is_reverted(self):
+        self.run_script()
+        self.assertIn("analyze-hooks-added-actions.yaml", self.entries())
+        self.write("src/Tribe/Main.php", BEFORE)
+        self.commit("revert")
+        self.run_script()
+        self.assertEqual(set(self.entries()), {"analyze-hooks-changed-views.yaml"})
+
     def test_it_compares_with_the_last_release_tag_not_another_tag(self):
         """ft-002 is not a release; a later release tag shortens the range."""
         self.git("tag", "6.18.3")
