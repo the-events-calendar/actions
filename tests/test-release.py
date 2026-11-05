@@ -94,6 +94,9 @@ class ReleaseTests(unittest.TestCase):
         self.assertIn('.state == "APPROVED" and .commit_id == $sha', step)
         self.assertIn("group_by(.user.id) | map(last)", step)
         self.assertNotIn("reviewDecision", step)
+        # Anyone can approve on a public repository: only the org's people count, never a bot.
+        self.assertIn('.user.type != "Bot"', step)
+        self.assertIn('IN("OWNER", "MEMBER", "COLLABORATOR")', step)
         self.assertIn("isCrossRepository | not", step)
         self.assertIn("pull-requests: read", workflow)
 
