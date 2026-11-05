@@ -16,15 +16,21 @@ WRAPPERS = {a: ROOT / f".github/actions/{a}/action.yml" for a in ("release-merge
 # Each step's text, keyed by its name: the body runs to the next step.
 STEPS = {
     m.group(1): m.group(0)
-    for m in re.finditer(r"      - name: (.+)\n(?:(?!      - name: ).*\n?)*", WORKFLOW.read_text())
+    for m in re.finditer(r"      - name: (.+)\n(?:(?:        .*)?\n)*", WORKFLOW.read_text())
 }
 
 
 class ReleaseTests(unittest.TestCase):
-    def test_wrappers_pin_the_toolbox_action_to_a_commit(self):
+    def test_publish_pins_the_toolbox_action_to_a_commit(self):
         """The bot token reaches this code, so it must not be a ref that can move under us."""
-        for name, path in WRAPPERS.items():
-            self.assertRegex(path.read_text(), rf"uses: stellarwp/plugin-toolbox/\.github/actions/{name}@[0-9a-f]{{40}}\b")
+        self.assertRegex(WRAPPERS["release-publish"].read_text(), r"uses: stellarwp/plugin-toolbox/\.github/actions/release-publish@[0-9a-f]{40}\b")
+
+    def test_merge_is_ours_not_the_toolbox(self):
+        """The toolbox's release-merge checks package.json against a four-part version and refuses it."""
+        text = WRAPPERS["release-merge"].read_text()
+        self.assertNotIn("uses:", text)
+        self.assertIn('run: bash "$GITHUB_ACTION_PATH/merge.sh"', text)
+        self.assertIn("GH_TOKEN: ${{ inputs.token }}", text)
 
     def test_template_calls_our_wrappers_not_the_toolbox(self):
         """The toolbox ref is pinned in one place, the wrappers."""
@@ -86,16 +92,39 @@ class ReleaseTests(unittest.TestCase):
         """It comes from .puprc and becomes a path and a $GITHUB_OUTPUT line."""
         self.assertIn("^[A-Za-z0-9._-]+$", STEPS["Read the title, zip name and changelog"])
 
-    def test_the_run_waits_for_the_environment_reviewers(self):
-        """The bot token bypasses main's review rule: an environment reviewer approves each run."""
+    def test_an_approved_pull_request_releases_without_waiting(self):
+        """The bot token bypasses main's review rule: an approval of this very commit lets it through."""
+        step = STEPS["Check whether the release pull request is approved at this commit"]
+        self.assertIn(".headRefOid == $sha", step)
+        # main keeps an approval after a push: the approval has to be of this very commit.
+        self.assertIn('.state == "APPROVED" and .commit_id == $sha', step)
+        self.assertIn("group_by(.user.id) | map(last)", step)
+        self.assertIn('any(.state == "CHANGES_REQUESTED")', step)
+        # Anyone can review on a public repository: only people with write access count, never a bot.
+        self.assertIn('.user.type != "Bot"', step)
+        self.assertIn("collaborators/${login}/permission", step)
+        self.assertIn('[ "$permission" = admin ] || [ "$permission" = write ]', step)
+        # author_association shows a private org member as a CONTRIBUTOR: it must not decide.
+        self.assertNotIn("author_association |", step)
+        self.assertIn("isCrossRepository | not", step)
+        self.assertIn('echo "approved=true"', step)
+        # Nobody approves their own release: the dispatcher and the commit's author and committer.
+        self.assertIn("ACTOR: ${{ github.actor }}", step)
+        self.assertIn("TRIGGERING_ACTOR: ${{ github.triggering_actor }}", step)
+        self.assertIn(".author.login?, .committer.login?", step)
+        self.assertIn("(.user.login | IN($self[]) | not)", step)
+        self.assertIn("pull-requests: read", WORKFLOW.read_text())
+
+    def test_without_one_the_run_waits_for_an_environment_reviewer(self):
         workflow = WORKFLOW.read_text()
-        self.assertIn("    environment: github-release\n", workflow)
-        self.assertNotIn("pull-requests: read", workflow)
+        self.assertIn("    needs: check\n", workflow)
+        self.assertIn("environment: ${{ needs.check.outputs.approved != 'true' && 'github-release' || '' }}", workflow)
 
     def test_an_environment_without_reviewers_is_refused(self):
         """GitHub creates a missing environment unprotected, which would run straight through."""
         workflow = WORKFLOW.read_text()
         step = STEPS["Check that the environment has reviewers"]
+        self.assertIn("if: needs.check.outputs.approved != 'true'", step)
         self.assertIn('any(.type == "required_reviewers")', step)
         self.assertIn("ENVIRONMENT: github-release", step)
         self.assertIn("actions: read", workflow)

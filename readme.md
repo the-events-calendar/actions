@@ -63,19 +63,23 @@ place until the trial is done.
 the release branch into `main` (and `main` back into a develop branch when `develop-branch` is set; empty by default), then the GitHub release at the merged
 commit with the version's `readme.txt` changelog as the notes. The production zip is checked
 (its main plugin file has to carry that version) and attached only when `zip-url` is given;
-without it the release is published with no asset. Each run waits for a reviewer of the
-`github-release` environment to approve it, like the WordPress.org SVN workflows; a repository
-whose environment has no required reviewers is refused. Create the environment in every repository
-that receives this workflow, with required reviewers and deployment branches limited to `release/*`.
+without it the release is published with no asset. A run needs one of two approvals. With
+the release pull request approved, by someone in the organization, at the commit the run starts
+on, it releases straight away. Without that, it waits for a reviewer of the `github-release`
+environment to approve the run, like the WordPress.org SVN workflows; a reviewer who starts the run
+approves it themselves. A repository whose environment has no required reviewers can only release
+through an approved pull request. To set it up: Settings, Environments, New environment
+`github-release`, tick Required reviewers and add the people who may release.
 The run also refuses a branch `main` has commits past, since the tagged merge commit would then
 hold code the zip does not. Only `release/*` branches are merged, and
 the changelog and the zip are checked before the merge, so a mistake stops the run before `main`
-is touched. The merging and publishing are the toolbox's
-[release-merge](https://github.com/stellarwp/plugin-toolbox/tree/main/.github/actions/release-merge)
-and [release-publish](https://github.com/stellarwp/plugin-toolbox/tree/main/.github/actions/release-publish),
-through the wrappers `.github/actions/release-merge` and `.github/actions/release-publish`, pinned
-to a commit of the toolbox's `main` like `release-prep`. The workflow runs with the bot token,
-which is on the tag ruleset's bypass list.
+is touched. The merge is ours, `.github/actions/release-merge/merge.sh`, through the GitHub API:
+the branch arrives prepared, so the version only names the tag and no file is checked against it
+(the toolbox's release-merge checks every version file, and a four-part release keeps
+`package.json` on three parts). Publishing is the toolbox's
+[release-publish](https://github.com/stellarwp/plugin-toolbox/tree/main/.github/actions/release-publish),
+through the wrapper `.github/actions/release-publish`, pinned to a commit of the toolbox's `main`
+like `release-prep`. The workflow runs with the bot token, which is on the tag ruleset's bypass list.
 
 ## WordPress test matrix
 

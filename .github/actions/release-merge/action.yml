@@ -1,11 +1,10 @@
 name: "Release merge"
 description: "Merges the release branch into the base branch, then the base branch back into develop"
 
-# A thin wrapper so the product repos call our actions repo, while the work happens in the toolbox's
-# release-merge action. Its README documents the inputs and what it refuses.
-#
-# Pinned to a commit of the toolbox's main, never the branch itself: the bot token is handed to
-# this code, and a branch can change under us. Bump the SHA to pick up new commits.
+# Merges through the GitHub API, in merge.sh, which documents what it refuses. Not the toolbox's
+# release-merge: that one checks every .puprc version file against the version, and a four-part
+# release keeps package.json on three parts. Here the branch arrives prepared and the version only
+# names the tag.
 
 inputs:
   branch:
@@ -16,7 +15,7 @@ inputs:
     required: false
     default: ""
   version:
-    description: "The version being released, e.g. 6.18.3 or 6.18.2.1. Every .puprc version file must hold it"
+    description: "The version being released, e.g. 6.18.3 or 6.18.2.1. It names the tag; no file is checked against it"
     required: true
   base-branch:
     description: "The branch the release is merged into"
@@ -46,11 +45,13 @@ runs:
   steps:
     - name: "Merge the release"
       id: merge
-      uses: stellarwp/plugin-toolbox/.github/actions/release-merge@184de04ef58e876aa02ee8d62b22fe8324f87f68 # main
-      with:
-        branch: ${{ inputs.branch }}
-        head: ${{ inputs.head }}
-        version: ${{ inputs.version }}
-        base-branch: ${{ inputs.base-branch }}
-        develop-branch: ${{ inputs.develop-branch }}
-        token: ${{ inputs.token }}
+      shell: bash
+      env:
+        # Read from the environment, never interpolated into the script.
+        GH_TOKEN: ${{ inputs.token }}
+        BRANCH: ${{ inputs.branch }}
+        HEAD: ${{ inputs.head }}
+        VERSION: ${{ inputs.version }}
+        BASE: ${{ inputs.base-branch }}
+        DEVELOP: ${{ inputs.develop-branch }}
+      run: bash "$GITHUB_ACTION_PATH/merge.sh"
