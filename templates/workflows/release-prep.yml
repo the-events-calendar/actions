@@ -186,7 +186,7 @@ jobs:
         with:
           branch: ${{ inputs.branch }}
           version: ${{ inputs.version }}
-          date: ${{ inputs.date }}
+          date: ${{ steps.changelog-date.outputs.date }}
           token: ${{ secrets.GHA_BOT_TOKEN_MANAGER }}
 
       - name: Summary

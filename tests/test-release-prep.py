@@ -82,7 +82,9 @@ class ReleasePrepTests(unittest.TestCase):
                 subprocess.run(["bash", "-c", script], check=True,
                                env={**os.environ, "RELEASE_DATE": given, "GITHUB_OUTPUT": out.name})
                 self.assertEqual(out.read().strip(), "date=" + expected, repr(given))
-        self.assertIn("date: ${{ steps.changelog-date.outputs.date }}", workflow)
+        # The changelogger write and the toolbox write share one date, even across UTC midnight.
+        self.assertEqual(workflow.count("date: ${{ steps.changelog-date.outputs.date }}"), 2)
+        self.assertNotIn("date: ${{ inputs.date }}", workflow)
 
     def test_the_version_is_checked_before_anything_is_written(self):
         workflow = WORKFLOW.read_text()
