@@ -58,8 +58,11 @@ place until the trial is done.
 
 `templates/workflows/release.yml` merges a release and publishes it, run on the release branch:
 the release branch into `main` (and `main` back into a develop branch when `develop-branch` is set; empty by default), then the GitHub release at the merged
-commit with the version's `readme.txt` changelog as the notes and the production zip attached
-(its main plugin file checked to carry that version). Only `release/*` branches are merged, and
+commit with the version's `readme.txt` changelog as the notes. The production zip is checked
+(its main plugin file has to carry that version) and attached only when `zip-url` is given;
+without it the release is published with no asset. The run also needs an approved pull request
+from the branch into `main` at the commit it starts on, and refuses a branch `main` has commits
+past, since the tagged merge commit would then hold code the zip does not. Only `release/*` branches are merged, and
 the changelog and the zip are checked before the merge, so a mistake stops the run before `main`
 is touched. The merging and publishing are the toolbox's
 [release-merge](https://github.com/stellarwp/plugin-toolbox/tree/main/.github/actions/release-merge)

@@ -84,6 +84,28 @@ class ReleaseTests(unittest.TestCase):
         """It comes from .puprc and becomes a path and a $GITHUB_OUTPUT line."""
         self.assertIn("^[A-Za-z0-9._-]+$", STEPS["Read the title, zip name and changelog"])
 
+    def test_the_release_pull_request_has_to_be_approved_at_this_commit(self):
+        """The bot token bypasses main's review rule, so the run checks the approval itself."""
+        workflow = WORKFLOW.read_text()
+        step = STEPS["Check that the release pull request is approved at this commit"]
+        self.assertLess(workflow.index("- name: Check that the release pull request is approved"), workflow.index("- name: Merge the release"))
+        self.assertIn(".headRefOid == $sha", step)
+        # main keeps an approval after a push: the approval has to be of this very commit.
+        self.assertIn('.state == "APPROVED" and .commit_id == $sha', step)
+        self.assertIn("group_by(.user.id) | map(last)", step)
+        self.assertNotIn("reviewDecision", step)
+        self.assertIn("isCrossRepository | not", step)
+        self.assertIn("pull-requests: read", workflow)
+
+    def test_a_branch_main_has_moved_past_is_refused(self):
+        """Otherwise the merge commit holds code the zip, built from the branch, does not."""
+        step = STEPS["Check that the release pull request is approved at this commit"]
+        self.assertIn("compare/${BASE}...${SHA}", step)
+        self.assertIn('"diverged"', step)
+
+    def test_readme_says_the_zip_is_optional(self):
+        self.assertIn("only when `zip-url` is given", (ROOT / "readme.md").read_text())
+
     def test_zip_stays_inside_the_checkout(self):
         """release-publish reads assets relative to the checkout."""
         self.assertNotIn("RUNNER_TEMP/${ZIP_NAME}", WORKFLOW.read_text())

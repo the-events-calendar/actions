@@ -42,6 +42,8 @@ concurrency:
 
 permissions:
   contents: read
+  # Read the release pull request's approval.
+  pull-requests: read
 
 jobs:
   release:
@@ -70,6 +72,50 @@ jobs:
           # Checked here, not only by the toolbox: the steps before the merge read it too.
           if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
             echo "::error::'$VERSION' is not a version: three or four numeric parts, e.g. 6.18.3 or 6.18.2.1."
+            exit 1
+          fi
+
+      # The bot token bypasses main's review rule, so the run checks the approval itself: the pull
+      # request from this branch into main has to hold an approval of the very commit the run started
+      # on. main's rules keep an approval after a push, so the pull request's review state alone could
+      # be an approval of an earlier commit. A merged pull request counts, so a run repeated after a
+      # late failure passes.
+      - name: Check that the release pull request is approved at this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ inputs.branch }}
+          BASE: main
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --base "$BASE" --state all \
+            --json number,state,headRefOid,isCrossRepository \
+            | jq -r --arg sha "$SHA" '[.[] | select(.isCrossRepository | not) | select(.state == "OPEN" or .state == "MERGED")
+              | select(.headRefOid == $sha) | .number] | first // empty')
+          if [ -z "$pr" ]; then
+            echo "::error::No open or merged pull request from $BRANCH into $BASE at ${SHA}. Open the release pull request, then start the run again."
+            exit 1
+          fi
+
+          # Each reviewer's latest approving or blocking review, as GitHub counts them: a later
+          # "changes requested" or a dismissal replaces an approval, a comment does not.
+          approvers=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${pr}/reviews" \
+            | jq -rs --arg sha "$SHA" 'add | map(select(.state != "COMMENTED" and .state != "PENDING"))
+              | group_by(.user.id) | map(last) | map(select(.state == "APPROVED" and .commit_id == $sha))
+              | map(.user.login) | join(", ")')
+          if [ -z "$approvers" ]; then
+            echo "::error::Pull request #${pr} has no approval of ${SHA}, the commit this run is on. Get it approved at the branch's tip, then start the run again."
+            exit 1
+          fi
+          echo "#${pr} approved at ${SHA} by ${approvers}."
+
+          # Every commit on main has to be in the branch already: otherwise the merge commit, which is
+          # what gets tagged, holds code the zip, built from the branch, does not. "behind" is a
+          # repeated run, where the branch is already in main.
+          status=$(gh api "repos/${GITHUB_REPOSITORY}/compare/${BASE}...${SHA}" --jq .status)
+          if [ "$status" = "diverged" ]; then
+            echo "::error::$BASE has commits $BRANCH does not. Merge $BASE into $BRANCH, rebuild the zip, get it approved, and start the run again."
             exit 1
           fi
 
