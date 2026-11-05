@@ -5,7 +5,10 @@ Run: python3 tests/test-release-prep.py
 """
 
 from pathlib import Path
+import os
 import re
+import subprocess
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -67,6 +70,19 @@ class ReleasePrepTests(unittest.TestCase):
         self.assertLess(workflow.index("- name: Import common's changelog entries"), write)
         self.assertLess(write, workflow.index("- name: Add the language changelog entry"))
         self.assertRegex(workflow, r"uses: stellarwp/changelogger@[0-9a-f]{40}\b")
+
+    def test_the_changelog_date_defaults_to_today_and_keeps_an_explicit_one(self):
+        """Empty and "today" resolve to the UTC date; the changelogger would write them as is."""
+        workflow = WORKFLOW.read_text()
+        step = workflow.split("- name: Resolve the changelog date", 1)[1].split("\n      - name:", 1)[0]
+        script = re.search(r"run: \|\n((?:\s{10}.*\n?)+)", step).group(1)
+        today = subprocess.check_output(["date", "-u", "+%F"], text=True).strip()
+        for given, expected in (("", today), ("today", today), ("2026-01-02", "2026-01-02")):
+            with tempfile.NamedTemporaryFile("r") as out:
+                subprocess.run(["bash", "-c", script], check=True,
+                               env={**os.environ, "RELEASE_DATE": given, "GITHUB_OUTPUT": out.name})
+                self.assertEqual(out.read().strip(), "date=" + expected, repr(given))
+        self.assertIn("date: ${{ steps.changelog-date.outputs.date }}", workflow)
 
     def test_the_version_is_checked_before_anything_is_written(self):
         workflow = WORKFLOW.read_text()
