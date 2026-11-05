@@ -63,9 +63,12 @@ place until the trial is done.
 the release branch into `main` (and `main` back into a develop branch when `develop-branch` is set; empty by default), then the GitHub release at the merged
 commit with the version's `readme.txt` changelog as the notes. The production zip is checked
 (its main plugin file has to carry that version) and attached only when `zip-url` is given;
-without it the release is published with no asset. The run also needs an approved pull request
-from the branch into `main` at the commit it starts on, and refuses a branch `main` has commits
-past, since the tagged merge commit would then hold code the zip does not. Only `release/*` branches are merged, and
+without it the release is published with no asset. Each run waits for a reviewer of the
+`github-release` environment to approve it, like the WordPress.org SVN workflows; a repository
+whose environment has no required reviewers is refused. Create the environment in every repository
+that receives this workflow, with required reviewers and deployment branches limited to `release/*`.
+The run also refuses a branch `main` has commits past, since the tagged merge commit would then
+hold code the zip does not. Only `release/*` branches are merged, and
 the changelog and the zip are checked before the merge, so a mistake stops the run before `main`
 is touched. The merging and publishing are the toolbox's
 [release-merge](https://github.com/stellarwp/plugin-toolbox/tree/main/.github/actions/release-merge)

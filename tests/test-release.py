@@ -86,29 +86,28 @@ class ReleaseTests(unittest.TestCase):
         """It comes from .puprc and becomes a path and a $GITHUB_OUTPUT line."""
         self.assertIn("^[A-Za-z0-9._-]+$", STEPS["Read the title, zip name and changelog"])
 
-    def test_the_release_pull_request_has_to_be_approved_at_this_commit(self):
-        """The bot token bypasses main's review rule, so the run checks the approval itself."""
+    def test_the_run_waits_for_the_environment_reviewers(self):
+        """The bot token bypasses main's review rule: an environment reviewer approves each run."""
         workflow = WORKFLOW.read_text()
-        step = STEPS["Check that the release pull request is approved at this commit"]
-        self.assertLess(workflow.index("- name: Check that the release pull request is approved"), workflow.index("- name: Merge the release"))
-        self.assertIn(".headRefOid == $sha", step)
-        # main keeps an approval after a push: the approval has to be of this very commit.
-        self.assertIn('.state == "APPROVED" and .commit_id == $sha', step)
-        self.assertIn("group_by(.user.id) | map(last)", step)
-        # A reviewer's latest review requesting changes stops the run.
-        self.assertIn('.state == "CHANGES_REQUESTED"', step)
-        self.assertNotIn("reviewDecision", step)
-        # Anyone can approve on a public repository: only the org's people count, never a bot.
-        self.assertIn('.user.type != "Bot"', step)
-        self.assertIn('IN("OWNER", "MEMBER", "COLLABORATOR")', step)
-        self.assertIn("isCrossRepository | not", step)
-        self.assertIn("pull-requests: read", workflow)
+        self.assertIn("    environment: github-release\n", workflow)
+        self.assertNotIn("pull-requests: read", workflow)
+
+    def test_an_environment_without_reviewers_is_refused(self):
+        """GitHub creates a missing environment unprotected, which would run straight through."""
+        workflow = WORKFLOW.read_text()
+        step = STEPS["Check that the environment has reviewers"]
+        self.assertIn('any(.type == "required_reviewers")', step)
+        self.assertIn("ENVIRONMENT: github-release", step)
+        self.assertIn("actions: read", workflow)
+        self.assertLess(workflow.index("- name: Check that the environment has reviewers"), workflow.index("- name: Merge the release"))
 
     def test_a_branch_main_has_moved_past_is_refused(self):
         """Otherwise the merge commit holds code the zip, built from the branch, does not."""
-        step = STEPS["Check that the release pull request is approved at this commit"]
+        workflow = WORKFLOW.read_text()
+        step = STEPS["Check that main has nothing the branch lacks"]
         self.assertIn("compare/${BASE}...${SHA}", step)
         self.assertIn('"diverged"', step)
+        self.assertLess(workflow.index("- name: Check that main has nothing the branch lacks"), workflow.index("- name: Merge the release"))
 
     def test_readme_says_the_zip_is_optional(self):
         self.assertIn("only when `zip-url` is given", (ROOT / "readme.md").read_text())
