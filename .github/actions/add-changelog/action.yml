@@ -28,6 +28,10 @@ inputs:
   entry:
     description: 'Changelog Entry'
     required: true
+  working-directory:
+    description: 'The plugin folder, relative to the checkout: `plugins/<slug>` in the monorepo.'
+    required: false
+    default: '.'
 
 runs:
   using: "composite"
@@ -39,6 +43,7 @@ runs:
     - name: Create a changelog entry file
       id: run-changelogger
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       env:
         CL_FILE: ${{ inputs.file }}
         CL_SIGNIFICANCE: ${{ inputs.significance }}

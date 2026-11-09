@@ -5,6 +5,10 @@ description: "Bumps the version, replaces the TBDs and writes the changelog, the
 # steps, while the work happens in the toolbox's release-prep action. Its README documents the
 # inputs and what it refuses.
 #
+# In the monorepo, working-directory is plugins/<slug>: the plugin's own package.json is kept on three
+# parts there, while the toolbox runs at the root on the .puprc and package.json the monorepo
+# generates for that plugin.
+#
 # Pinned to a commit of the toolbox's main, never the branch itself: the bot token is handed to
 # this code, and a branch can change under us. Bump the SHA to pick up new commits.
 
@@ -22,6 +26,10 @@ inputs:
   token:
     description: "Token the commit is created with. Needs contents: write on the repository"
     required: true
+  working-directory:
+    description: 'The plugin folder, relative to the checkout: `plugins/<slug>` in the monorepo.'
+    required: false
+    default: '.'
 
 outputs:
   version:
@@ -44,6 +52,7 @@ runs:
     # in package.json. keep-package-version.sh documents how.
     - name: "Keep package.json on three parts"
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       env:
         VERSION: ${{ inputs.version }}
       run: bash "$GITHUB_ACTION_PATH/keep-package-version.sh"

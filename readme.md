@@ -53,6 +53,14 @@ Running it again on a prepared branch changes nothing. Steps 2 and 5 reuse the a
 "Release: Update WordPress Version" and "Release: Sync Translations", which stay for running one
 step on its own.
 
+In the TEC plugins monorepo the same actions run on one plugin's folder: `update-wp-version`,
+`import-common-changelog`, `analyze-hooks`, `add-changelog` and the `release-prep` wrapper take
+`working-directory: plugins/<slug>`, and the two that look for the last release take
+`tag-prefix: <slug>/`, since monorepo tags are `<slug>/<version>`. `import-common-changelog`
+reads common's history from the monorepo when `common` is a symlink, and `generate-pot` skips
+symlinked directories as it skips submodules. The defaults (`.` and no prefix) keep every plugin
+repository as it is.
+
 The wrapper is pinned to a commit of the toolbox's `main`, not to the branch, because the bot
 token is handed to that code. The existing `release-*` workflows stay in
 place until the trial is done.

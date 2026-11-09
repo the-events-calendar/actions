@@ -12,6 +12,10 @@ inputs:
     description: "'yes' to also set 'Requires at least' two minor versions behind, e.g. 6.8.1 -> 6.6"
     required: false
     default: "no"
+  working-directory:
+    description: 'The plugin folder, relative to the checkout: `plugins/<slug>` in the monorepo.'
+    required: false
+    default: '.'
 
 outputs:
   min-version:
@@ -24,6 +28,7 @@ runs:
     - name: "Update the WordPress version"
       id: update
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       env:
         TESTED_UP_TO: ${{ inputs.tested-up-to }}
         UPDATE_MIN_VERSION: ${{ inputs.update-min-version }}

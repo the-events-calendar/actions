@@ -79,5 +79,29 @@ class KeepPackageVersionTests(unittest.TestCase):
         self.assertEqual(self.git("status", "--porcelain"), "")
 
 
+class MonorepoKeepPackageVersionTests(KeepPackageVersionTests):
+    """The plugin one folder down, the script run from it (the wrapper's working-directory), and a
+    root package.json beside it that must be left alone."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmp.name)
+        self.path = self.root / "plugins/event-tickets"
+        self.path.mkdir(parents=True)
+        self.git("-C", str(self.root), "init", "-q", "-b", "release/M26.raichu.1")
+        (self.root / "package.json").write_text('{"changelogger": {"version": "Version"}}\n')
+        (self.path / "package.json").write_text(PACKAGE % "5.30.3")
+        (self.path / "event-tickets.php").write_text(" * Version: 5.30.3\n")
+        self.git("add", "--all", ":/")
+        self.git("commit", "-q", "-m", "init")
+
+    def test_the_root_package_json_is_untouched(self):
+        self.prepare("5.30.3.1")
+        self.assertEqual(self.git("show", ":package.json"), '{"changelogger": {"version": "Version"}}\n')
+
+    def staged(self, name):
+        return self.git("show", f":plugins/event-tickets/{name}")
+
+
 if __name__ == "__main__":
     unittest.main()

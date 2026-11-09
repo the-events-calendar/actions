@@ -46,6 +46,33 @@ class ReleasePrepTests(unittest.TestCase):
         self.assertIn("sha512sum -c", (ROOT / ".github/actions/generate-pot/action.yml").read_text())
         self.assertIn('pup-version: "2.0.0"', WRAPPER.read_text())
 
+    def test_plugin_folder_actions_run_their_steps_in_the_working_directory(self):
+        """The monorepo runs them on plugins/<slug>; the default '.' keeps every plugin repo as it is."""
+        for action in ("analyze-hooks", "import-common-changelog", "add-changelog", "update-wp-version"):
+            text = (ROOT / ".github/actions" / action / "action.yml").read_text()
+            with self.subTest(action=action):
+                self.assertRegex(text, r"\n  working-directory:\n(    .+\n)*?    default: '\.'\n")
+                self.assertEqual(text.count("shell: bash"),
+                                 text.count("working-directory: ${{ inputs.working-directory }}"))
+
+    def test_tag_reading_actions_take_a_tag_prefix(self):
+        """Monorepo tags are <slug>/<version>; empty keeps the bare version tags of every plugin repo."""
+        for action in ("analyze-hooks", "import-common-changelog"):
+            text = (ROOT / ".github/actions" / action / "action.yml").read_text()
+            with self.subTest(action=action):
+                self.assertRegex(text, r"\n  tag-prefix:\n(    .+\n)*?    default: ''\n")
+                self.assertIn("TAG_PREFIX: ${{ inputs.tag-prefix }}", text)
+
+    def test_wrapper_keeps_the_plugins_package_json_and_runs_the_toolbox_at_the_root(self):
+        """The toolbox reads the root .puprc and package.json, which the monorepo generates."""
+        wrapper = WRAPPER.read_text()
+        self.assertRegex(wrapper, r"\n  working-directory:\n(    .+\n)*?    default: '\.'\n")
+        run = wrapper.index('run: bash "$GITHUB_ACTION_PATH/keep-package-version.sh"')
+        keep = wrapper[wrapper.rindex("- name:", 0, run):run]
+        self.assertIn("working-directory: ${{ inputs.working-directory }}", keep)
+        toolbox = wrapper[wrapper.index("uses: stellarwp/plugin-toolbox"):]
+        self.assertNotIn("working-directory", toolbox)
+
     def test_the_job_never_writes_with_the_github_token(self):
         """The commit uses the bot token; a write-scoped github.token would reach every step before it."""
         self.assertNotIn("contents: write", WORKFLOW.read_text())

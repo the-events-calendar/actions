@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Sets "Tested up to" in readme.txt and, when asked, "Requires at least" two minor versions
-# behind it in readme.txt and the plugin file. Run from the root of the plugin checkout.
+# behind it in readme.txt and the plugin file. Run from the plugin's folder: the checkout root,
+# or plugins/<slug> in the monorepo (the action's working-directory).
 #
 # Both inputs arrive through the environment, never expanded into the source, so a dispatch
 # input is data: TESTED_UP_TO (e.g. 6.8.1) and UPDATE_MIN_VERSION (yes or no).
