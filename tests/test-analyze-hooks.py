@@ -150,5 +150,76 @@ class AnalyzeHooksTests(unittest.TestCase):
         self.assertIn("No release tag", result.stdout)
 
 
+class MonorepoAnalyzeHooksTests(AnalyzeHooksTests):
+    """The same plugin one folder down, with `<slug>/<version>` tags and another plugin beside it."""
+
+    PLUGIN = "plugins/the-events-calendar"
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmp.name)
+        self.repo = self.root / self.PLUGIN
+        self.repo.mkdir(parents=True)
+        self.git("init", "-q", "-b", "main")
+        self.write("src/Tribe/Main.php", BEFORE)
+        self.write("src/views/v2/list.php", "<?php // list\n")
+        self.write("src/views/v2/day.php", "<?php // day\n")
+        self.write_other("src/Main.php", "<?php\n")
+        self.commit("release")
+        self.git("tag", "the-events-calendar/6.18.2")
+        self.git("tag", "the-events-calendar/ft-002")
+        self.write("src/Tribe/Main.php", AFTER)
+        self.write("src/views/v2/list.php", "<?php // list, changed\n")
+        # Another plugin released later, with a higher version and a hook of its own.
+        self.write_other("src/Main.php", "<?php\ndo_action( 'et_other_plugin' );\n")
+        self.commit("work")
+        self.git("tag", "event-tickets/6.20.0")
+        self.git("tag", "6.19.0")
+
+    def write_other(self, name, body):
+        path = self.root / "plugins/event-tickets" / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(body)
+
+    def run_script(self):
+        return subprocess.run(["node", str(SCRIPT)], cwd=self.repo, capture_output=True, text=True,
+                              env={**os.environ, "GITHUB_STEP_SUMMARY": os.devnull,
+                                   "TAG_PREFIX": "the-events-calendar/"})
+
+    def test_it_compares_with_the_last_release_tag_not_another_tag(self):
+        self.git("tag", "the-events-calendar/6.18.3")
+        self.assertEqual(self.run_script().returncode, 0)
+        self.assertEqual(self.entries(), {})
+
+    def test_nothing_changed_writes_nothing(self):
+        self.git("tag", "the-events-calendar/6.19.0")
+        self.run_script()
+        self.assertEqual(self.entries(), {})
+
+    def test_a_hook_with_another_call_left_in_src_is_neither_added_nor_removed(self):
+        self.write("src/Tribe/Twin.php", "<?php\n$a = apply_filters( 'tec_twin', $a );\n")
+        self.commit("twin")
+        self.git("tag", "the-events-calendar/6.18.3")
+        self.write("src/Tribe/Twin.php", "<?php\n")
+        self.write("src/Tribe/Main.php", AFTER + "$g = apply_filters( 'tec_twin', $g );\n")
+        self.commit("move the twin")
+        self.run_script()
+        self.assertNotIn("tec_twin", "".join(self.entries().values()))
+
+    def test_other_plugins_tags_and_hooks_are_ignored(self):
+        """event-tickets/6.20.0 and the bare 6.19.0 are newer, but not this plugin's releases."""
+        self.assertEqual(self.run_script().returncode, 0)
+        listed = "".join(self.entries().values())
+        self.assertIn("tec_added_action", listed)
+        self.assertNotIn("et_other_plugin", listed)
+        self.assertFalse((self.root / "changelog").exists())
+
+    def test_no_release_tag_is_an_error(self):
+        self.git("tag", "-d", "the-events-calendar/6.18.2")
+        result = self.run_script()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("No release tag", result.stdout)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -1,7 +1,8 @@
 /**
  * Files the hooks and views a release changes as pending changelog entries, so the release notes
- * name them. Run from the root of the plugin checkout, with full history and tags, before the
- * changelog is written.
+ * name them. Run from the plugin's folder (the checkout root, or `plugins/<slug>` in a monorepo),
+ * with full history and tags, before the changelog is written. `TAG_PREFIX` (`<slug>/` in a
+ * monorepo) limits the release tags to the plugin's own; empty takes bare version tags.
  *
  * Compared with the last release tag:
  *  - the `apply_filters` / `do_action` calls in `src/` whose name is a complete string literal. A hook
@@ -94,7 +95,11 @@ function main(): void {
   const summary = process.env.GITHUB_STEP_SUMMARY;
   const note = (line: string) => summary && appendFileSync(summary, `${line}\n`);
 
-  const tag = lastReleaseTag(git('tag', '--merged', 'HEAD').split('\n'));
+  const prefix = process.env.TAG_PREFIX ?? '';
+  const version = lastReleaseTag(
+    git('tag', '--merged', 'HEAD').split('\n').filter((t) => t.startsWith(prefix)).map((t) => t.slice(prefix.length)),
+  );
+  const tag = version && `${prefix}${version}`;
   if (!tag) {
     console.log('::error::No release tag is reachable from HEAD, so there is no last release to compare with. Check out with fetch-depth: 0.');
     process.exit(1);
@@ -110,7 +115,8 @@ function main(): void {
     try { return git('grep', '-I', '-h', '-E', '(apply_filters|do_action)', ...tree, '--', SRC); } catch { return ''; }
   };
   let written = 0;
-  for (const entry of analyze(calls(tag), calls(), git('diff', '--name-only', tag, '--', SRC).split('\n'))) {
+  // --relative: paths from the plugin's folder, as VIEW_FILE expects, when it is below the root.
+  for (const entry of analyze(calls(tag), calls(), git('diff', '--relative', '--name-only', tag, '--', SRC).split('\n'))) {
     const body = text(entry);
     if (known.has(`Tweak-${body.replace(/\s+/g, '')}`)) {
       note(`- skipped \`${body}\`, the plugin already has it`);

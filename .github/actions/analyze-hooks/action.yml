@@ -6,6 +6,16 @@ description: "Files the actions and filters a release adds or removes, and the v
 # The checkout needs full history and tags: fetch-depth: 0. Run it before the changelog is
 # written, so the entries are processed with the rest.
 
+inputs:
+  working-directory:
+    description: 'The plugin folder, relative to the checkout: `plugins/<slug>` in the monorepo.'
+    required: false
+    default: '.'
+  tag-prefix:
+    description: 'Prefix of the plugin''s release tags: `<slug>/` in the monorepo. Empty takes bare version tags.'
+    required: false
+    default: ''
+
 runs:
   using: composite
   steps:
@@ -18,4 +28,7 @@ runs:
 
     - name: Add the hook and view changelog entries
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        TAG_PREFIX: ${{ inputs.tag-prefix }}
       run: node "$GITHUB_ACTION_PATH/analyze-hooks.ts"
