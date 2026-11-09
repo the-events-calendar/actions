@@ -301,5 +301,132 @@ class ImportCommonChangelogTests(unittest.TestCase):
         self.assertIn("not in the checkout", proc.stdout + proc.stderr)
 
 
+class MonorepoImportCommonChangelogTests(unittest.TestCase):
+    """The monorepo: common is plugins/packages/tribe-common, linked into the plugin as a symlink, so
+    its history is the monorepo's own, and release tags are `<slug>/<version>`."""
+
+    PACKAGE = "plugins/packages/tribe-common"
+    PLUGIN = "plugins/the-events-calendar"
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.repo = Repo(Path(self._tmp.name) / "monorepo")
+        self.plugin = self.repo.path / self.PLUGIN
+        self.repo.write(f"{self.PACKAGE}/changelog/.gitkeep", "")
+        self.repo.write(f"{self.PACKAGE}/changelog.md", "# common\n")
+        self.repo.write(f"{self.PLUGIN}/changelog/.gitkeep", "")
+        self.repo.write(f"{self.PLUGIN}/changelog.md", "# Changelog\n\n### [6.18.2] 2026-10-15\n\n"
+                                                       "* Fix - Closed the date picker on an outside click.\n")
+        (self.plugin / "common").symlink_to("../packages/tribe-common")
+        self.repo.write("plugins/event-tickets/src/x.php", "<?php\n")
+        self.repo.commit("release 6.18.2")
+        self.repo.git("tag", "the-events-calendar/6.18.2")
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def advance_common(self, files, process=False):
+        for name, body in files.items():
+            self.repo.write(f"{self.PACKAGE}/changelog/{name}", body)
+        self.repo.commit("common entries")
+        if process:
+            for name in files:
+                (self.repo.path / self.PACKAGE / "changelog" / name).unlink()
+            with open(self.repo.path / self.PACKAGE / "changelog.md", "a") as f:
+                f.write("### release\n")
+            self.repo.commit("Process common changelog")
+
+    def run_script(self, prefix="the-events-calendar/"):
+        return subprocess.run(["bash", str(SCRIPT)], cwd=self.plugin, capture_output=True, text=True,
+                              env={**os.environ, **GIT_ENV, "TAG_PREFIX": prefix})
+
+    def pending(self):
+        return {re.sub(r"-[0-9a-f]{8}\.yaml$", ".yaml", p.name): p.read_text()
+                for p in (self.plugin / "changelog").glob("*.yaml")}
+
+    def test_imports_entries_made_only_in_the_package_since_the_plugins_tag(self):
+        self.advance_common({"fix-license.yaml": FIX, "fix-svul-113.yaml": SECURITY}, process=True)
+        self.advance_common({"pending.yaml": FOLDED})
+        proc = self.run_script()
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(self.pending(), {"common-fix-license.yaml": FIX, "common-fix-svul-113.yaml": SECURITY,
+                                          "common-pending.yaml": FOLDED})
+        self.assertFalse((self.repo.path / "changelog").exists())
+
+    def test_leaves_language_and_version_entries_and_reverted_ones_in_common(self):
+        self.advance_common({"lang.yaml": LANGUAGE, "assets.yaml": VERSION, "fix-license.yaml": FIX,
+                             "fix-svul-113.yaml": SECURITY})
+        (self.repo.path / self.PACKAGE / "changelog/fix-svul-113.yaml").unlink()
+        self.repo.commit("Revert the svul fix")
+        self.run_script()
+        self.assertEqual(set(self.pending()), {"common-fix-license.yaml"})
+
+    def test_skips_an_entry_already_in_the_plugins_changelog(self):
+        self.advance_common({"datepicker.yaml": HAND_COPIED, "fix-license.yaml": FIX})
+        self.run_script()
+        self.assertEqual(set(self.pending()), {"common-fix-license.yaml"})
+
+    def test_starts_from_the_plugins_own_tag_not_another_plugins_or_a_bare_one(self):
+        self.advance_common({"fix-license.yaml": FIX})
+        self.repo.git("tag", "event-tickets/6.20.0")
+        self.repo.git("tag", "6.19.0")
+        self.repo.git("tag", "the-events-calendar/ft-002")
+        self.advance_common({"fix-svul-113.yaml": SECURITY})
+        self.run_script()
+        self.assertEqual(set(self.pending()), {"common-fix-license.yaml", "common-fix-svul-113.yaml"})
+
+    def test_does_nothing_when_only_other_plugins_changed(self):
+        self.repo.write("plugins/event-tickets/changelog/et.yaml", FIX)
+        self.repo.commit("ET work")
+        proc = self.run_script()
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("unchanged", proc.stdout)
+        self.assertEqual(self.pending(), {})
+
+    def test_running_it_again_imports_nothing_new(self):
+        self.advance_common({"fix-license.yaml": FIX})
+        self.run_script()
+        first = self.pending()
+        self.run_script()
+        self.assertEqual(self.pending(), first)
+
+    def test_warns_when_a_newer_tag_of_the_plugin_is_not_merged_in(self):
+        self.repo.git("checkout", "-q", "-b", "release/T25")
+        self.repo.write(f"{self.PLUGIN}/src/x.php", "<?php\n")
+        self.repo.commit("6.18.3")
+        self.repo.git("tag", "the-events-calendar/6.18.3")
+        self.repo.git("tag", "event-tickets/9.0.0")
+        self.repo.git("checkout", "-q", "main")
+        proc = self.run_script()
+        self.assertIn("::warning::The newest release tag is the-events-calendar/6.18.3", proc.stdout)
+
+    def test_fails_without_a_tag_of_the_plugin(self):
+        self.repo.git("tag", "-d", "the-events-calendar/6.18.2")
+        self.repo.git("tag", "event-tickets/6.20.0")
+        proc = self.run_script()
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("fetch-depth: 0", proc.stdout + proc.stderr)
+
+    def test_a_link_to_the_repository_root_or_a_missing_folder_fails_with_a_message(self):
+        link = self.plugin / "common"
+        for target, message in (("../..", "below the repository root"), ("../packages/nowhere", "not to a folder")):
+            with self.subTest(target=target):
+                link.unlink()
+                link.symlink_to(target)
+                self.repo.commit(f"link to {target}")
+                proc = self.run_script()
+                self.assertNotEqual(proc.returncode, 0)
+                self.assertIn("::error::", proc.stdout)
+                self.assertIn(message, proc.stdout)
+
+    def test_a_plugin_without_the_link_imports_nothing(self):
+        (self.plugin / "common").unlink()
+        self.repo.commit("no common")
+        self.advance_common({"fix-license.yaml": FIX})
+        proc = self.run_script()
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(self.pending(), {})
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

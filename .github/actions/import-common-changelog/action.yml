@@ -2,13 +2,27 @@ name: "Import common's changelog entries"
 description: "Copies the changelog entries common gained since the last release into the plugin's changelog/"
 
 # For the plugins that bundle common, TEC and ET, so their release notes name the common changes
-# they ship. A plugin without a common submodule imports nothing. The checkout needs full history,
-# tags and the submodules: fetch-depth: 0 and submodules: recursive.
+# they ship. A plugin without common imports nothing. The checkout needs full history and tags,
+# and the submodules where common is one: fetch-depth: 0 and submodules: recursive. In the monorepo,
+# where common is a symlink to plugins/packages/tribe-common, set working-directory and tag-prefix.
 # import-common-changelog.sh documents the rules; tests/test-import-common-changelog.py tests them.
+
+inputs:
+  working-directory:
+    description: 'The plugin folder, relative to the checkout: `plugins/<slug>` in the monorepo.'
+    required: false
+    default: '.'
+  tag-prefix:
+    description: 'Prefix of the plugin''s release tags: `<slug>/` in the monorepo. Empty takes bare version tags.'
+    required: false
+    default: ''
 
 runs:
   using: composite
   steps:
     - name: "Import common's changelog entries"
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        TAG_PREFIX: ${{ inputs.tag-prefix }}
       run: bash "$GITHUB_ACTION_PATH/import-common-changelog.sh"
