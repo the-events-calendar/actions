@@ -97,6 +97,9 @@ jobs:
       - name: Check the common changelog import
         run: python3 tests/test-import-common-changelog.py
 
+      - name: Check what the POT skips
+        run: python3 tests/test-generate-pot.py
+
       - name: Set up Node for OpenSpec regression tests
         uses: actions/setup-node@v6
         with:
