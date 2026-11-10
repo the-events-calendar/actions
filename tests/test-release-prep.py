@@ -7,6 +7,7 @@ Run: python3 tests/test-release-prep.py
 from pathlib import Path
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -72,17 +73,32 @@ class ReleasePrepTests(unittest.TestCase):
         self.assertLess(write, workflow.index("- name: Add the language changelog entry"))
         self.assertRegex(workflow, r"uses: stellarwp/changelogger@[0-9a-f]{40}\b")
 
-    def test_the_changelog_date_defaults_to_today_and_keeps_an_explicit_one(self):
-        """Empty and "today" resolve to the UTC date; the changelogger would write them as is."""
+    def test_the_changelog_date_resolves_relative_dates_and_keeps_an_explicit_one(self):
+        """Empty, "today" and "tomorrow" resolve to a UTC date; the toolbox only takes YYYY-MM-DD."""
         workflow = WORKFLOW.read_text()
         step = workflow.split("- name: Resolve the changelog date", 1)[1].split("\n      - name:", 1)[0]
         script = re.search(r"run: \|\n((?:\s{10}.*\n?)+)", step).group(1)
-        today = subprocess.check_output(["date", "-u", "+%F"], text=True).strip()
-        for given, expected in (("", today), ("today", today), ("2026-01-02", "2026-01-02")):
+        # The runner's date is GNU; on macOS run the script against coreutils' gdate.
+        env = dict(os.environ)
+        gdate = shutil.which("gdate")
+        if gdate:
+            bin_dir = tempfile.mkdtemp()
+            os.symlink(gdate, os.path.join(bin_dir, "date"))
+            env["PATH"] = bin_dir + os.pathsep + env["PATH"]
+        elif subprocess.run(["date", "--version"], capture_output=True).returncode != 0:
+            self.skipTest("needs GNU date")
+        day = lambda when: subprocess.check_output(["date", "-u", "-d", when, "+%F"], text=True, env=env).strip()
+        today, tomorrow = day("today"), day("tomorrow")
+        for given, expected in (("", today), ("today", today), ("tomorrow", tomorrow), ("2026-01-02", "2026-01-02")):
             with tempfile.NamedTemporaryFile("r") as out:
-                subprocess.run(["bash", "-c", script], check=True,
-                               env={**os.environ, "RELEASE_DATE": given, "GITHUB_OUTPUT": out.name})
+                subprocess.run(["bash", "-e", "-c", script], check=True,
+                               env={**env, "RELEASE_DATE": given, "GITHUB_OUTPUT": out.name})
                 self.assertEqual(out.read().strip(), "date=" + expected, repr(given))
+        with tempfile.NamedTemporaryFile("r") as out:
+            run = subprocess.run(["bash", "-e", "-c", script], capture_output=True, text=True,
+                                 env={**env, "RELEASE_DATE": "not a date", "GITHUB_OUTPUT": out.name})
+            self.assertNotEqual(run.returncode, 0)
+            self.assertEqual(out.read(), "")
         # The changelogger write and the toolbox write share one date, even across UTC midnight.
         self.assertEqual(workflow.count("date: ${{ steps.changelog-date.outputs.date }}"), 2)
         self.assertNotIn("date: ${{ inputs.date }}", workflow)

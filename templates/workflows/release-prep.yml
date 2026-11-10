@@ -21,7 +21,7 @@ on:
         required: true
         type: string
       date:
-        description: 'Changelog date (YYYY-MM-DD). Empty or "today" writes today, in UTC'
+        description: 'Changelog date: YYYY-MM-DD or relative, e.g. "tomorrow". Empty writes today, in UTC'
         required: false
         type: string
         default: ''
@@ -161,12 +161,14 @@ jobs:
         id: changelog-date
         env:
           RELEASE_DATE: ${{ inputs.date }}
+        # GNU date reads YYYY-MM-DD and relative dates such as "tomorrow" or "next friday"; the
+        # toolbox only takes YYYY-MM-DD, so it gets the resolved date.
         run: |
-          if [ -z "$RELEASE_DATE" ] || [ "$RELEASE_DATE" = "today" ]; then
-            echo "date=$(date -u +%F)" >> "$GITHUB_OUTPUT"
-          else
-            echo "date=$RELEASE_DATE" >> "$GITHUB_OUTPUT"
+          if ! resolved=$(date -u -d "${RELEASE_DATE:-today}" +%F); then
+            echo "::error::'$RELEASE_DATE' is not a date. Pass YYYY-MM-DD or a relative date such as 'tomorrow'."
+            exit 1
           fi
+          echo "date=$resolved" >> "$GITHUB_OUTPUT"
 
       - name: Write the changelog before the language entry
         uses: stellarwp/changelogger@6bff9fcee9dc63f8ec4d723b09f728fbc40d0be5 # v1
