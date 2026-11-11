@@ -7,6 +7,7 @@ Run: python3 tests/test-release-prep.py
 from pathlib import Path
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -72,20 +73,74 @@ class ReleasePrepTests(unittest.TestCase):
         self.assertLess(write, workflow.index("- name: Add the language changelog entry"))
         self.assertRegex(workflow, r"uses: stellarwp/changelogger@[0-9a-f]{40}\b")
 
-    def test_the_changelog_date_defaults_to_today_and_keeps_an_explicit_one(self):
-        """Empty and "today" resolve to the UTC date; the changelogger would write them as is."""
+    def step_script(self, name):
+        """The run script of a template step, found by its name."""
+        step = WORKFLOW.read_text().split("- name: " + name, 1)[1].split("\n      - name:", 1)[0]
+        return re.search(r"run: \|\n((?:\s{10}.*\n?)+)", step).group(1)
+
+    def test_the_changelog_date_takes_a_date_today_or_tomorrow(self):
+        """The toolbox only takes YYYY-MM-DD; forms GNU date reads as another day are refused."""
+        script = self.step_script("Resolve the changelog date")
+        # The runner's date is GNU; on macOS run the script against coreutils' gdate.
+        env = dict(os.environ)
+        gdate = shutil.which("gdate")
+        if gdate:
+            bin_dir = tempfile.mkdtemp()
+            self.addCleanup(shutil.rmtree, bin_dir)
+            os.symlink(gdate, os.path.join(bin_dir, "date"))
+            env["PATH"] = bin_dir + os.pathsep + env["PATH"]
+        elif subprocess.run(["date", "--version"], capture_output=True).returncode != 0:
+            self.skipTest("needs GNU date")
+
+        def day(when):
+            return subprocess.check_output(["date", "-u", "-d", when, "+%F"], text=True, env=env).strip()
+
+        def run(given):
+            out = tempfile.NamedTemporaryFile("r")
+            summary = tempfile.NamedTemporaryFile("r")
+            self.addCleanup(out.close)
+            self.addCleanup(summary.close)
+            result = subprocess.run(["bash", "-e", "-c", script], capture_output=True, text=True,
+                                    env={**env, "RELEASE_DATE": given, "GITHUB_OUTPUT": out.name,
+                                         "GITHUB_STEP_SUMMARY": summary.name})
+            return result, out.read(), summary.read()
+
+        today, tomorrow = day("today"), day("tomorrow")
+        for given, expected in (("", today), ("today", today), ("tomorrow", tomorrow), ("2026-01-02", "2026-01-02")):
+            result, output, summary = run(given)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(output.strip(), "date=" + expected, repr(given))
+            self.assertIn(expected, summary, repr(given))
+        # US mm/dd, a bare number read as an hour, a typo, an impossible day, a version.
+        for given in ("02/01/2026", "12", "next friday", "tomorow", "2026-02-30", "6.18.3"):
+            result, output, _ = run(given)
+            self.assertNotEqual(result.returncode, 0, repr(given))
+            self.assertEqual(output, "", repr(given))
+
+    def test_the_changelog_date_is_resolved_before_anything_is_written(self):
+        """It can fail, so it runs before GlotPress, and both writes share its one date."""
         workflow = WORKFLOW.read_text()
-        step = workflow.split("- name: Resolve the changelog date", 1)[1].split("\n      - name:", 1)[0]
-        script = re.search(r"run: \|\n((?:\s{10}.*\n?)+)", step).group(1)
-        today = subprocess.check_output(["date", "-u", "+%F"], text=True).strip()
-        for given, expected in (("", today), ("today", today), ("2026-01-02", "2026-01-02")):
-            with tempfile.NamedTemporaryFile("r") as out:
-                subprocess.run(["bash", "-c", script], check=True,
-                               env={**os.environ, "RELEASE_DATE": given, "GITHUB_OUTPUT": out.name})
-                self.assertEqual(out.read().strip(), "date=" + expected, repr(given))
+        resolve = workflow.index("- name: Resolve the changelog date")
+        for step in ("- name: Update the WordPress version", "- name: Push the POT file to GlotPress"):
+            self.assertLess(resolve, workflow.index(step), step)
         # The changelogger write and the toolbox write share one date, even across UTC midnight.
         self.assertEqual(workflow.count("date: ${{ steps.changelog-date.outputs.date }}"), 2)
         self.assertNotIn("date: ${{ inputs.date }}", workflow)
+
+    def test_the_version_check_refuses_a_tagged_version(self):
+        """The toolbox refuses it too, but only after the POT push."""
+        script = self.step_script("Check the version")
+        repo = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, repo)
+        git_env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1",
+                   "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.com",
+                   "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.com"}
+        for args in (["init", "-q"], ["commit", "-q", "--allow-empty", "-m", "init"], ["tag", "6.18.3"]):
+            subprocess.run(["git", *args], cwd=repo, check=True, env=git_env)
+        for version, code in (("6.18.3", 1), ("6.18.4", 0)):
+            result = subprocess.run(["bash", "-e", "-c", script], cwd=repo, capture_output=True, text=True,
+                                    env={**git_env, "VERSION": version, "TESTED_UP_TO": "", "UPDATE_MIN_VERSION": ""})
+            self.assertEqual(result.returncode, code, version)
 
     def test_the_version_is_checked_before_anything_is_written(self):
         workflow = WORKFLOW.read_text()

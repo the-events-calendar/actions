@@ -21,7 +21,7 @@ on:
         required: true
         type: string
       date:
-        description: 'Changelog date (YYYY-MM-DD). Empty or "today" writes today, in UTC'
+        description: 'Changelog date: YYYY-MM-DD, "today" or "tomorrow", in UTC. Empty writes today'
         required: false
         type: string
         default: ''
@@ -82,6 +82,28 @@ jobs:
             echo "::error::update-min-version needs tested-up-to: the minimum is derived from it."
             exit 1
           fi
+          # The toolbox refuses a tagged version too, but only after the POT push. fetch-depth: 0
+          # brings the tags.
+          if git rev-parse -q --verify "refs/tags/$VERSION" >/dev/null; then
+            echo "::error::$VERSION is already tagged. Give the release a new version."
+            exit 1
+          fi
+
+      # Before anything is written or pushed to GlotPress, since it can fail. Only these forms: GNU
+      # date reads 02/01/2026 as US mm/dd and 12 as an hour, both silently the wrong day. The
+      # toolbox only takes YYYY-MM-DD, so it gets the resolved date, which the summary shows.
+      - name: Resolve the changelog date
+        id: changelog-date
+        env:
+          RELEASE_DATE: ${{ inputs.date }}
+        run: |
+          if ! [[ "${RELEASE_DATE:-today}" =~ ^([0-9]{4}-[0-9]{2}-[0-9]{2}|today|tomorrow)$ ]] \
+            || ! resolved=$(date -u -d "${RELEASE_DATE:-today}" +%F); then
+            echo "::error::'$RELEASE_DATE' is not a date. Pass YYYY-MM-DD, 'today' or 'tomorrow' (UTC), or leave it empty for today."
+            exit 1
+          fi
+          echo "date=$resolved" >> "$GITHUB_OUTPUT"
+          echo "Changelog date: \`$resolved\` (UTC)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Update the WordPress version
         if: inputs.tested-up-to != ''
@@ -157,17 +179,6 @@ jobs:
       # The changelogger sorts a write's entries by type, which puts Language first. Writing the
       # other entries now, before the language entry exists, leaves it to the toolbox's own write,
       # which appends it to this version's section: last, where earlier releases have it.
-      - name: Resolve the changelog date
-        id: changelog-date
-        env:
-          RELEASE_DATE: ${{ inputs.date }}
-        run: |
-          if [ -z "$RELEASE_DATE" ] || [ "$RELEASE_DATE" = "today" ]; then
-            echo "date=$(date -u +%F)" >> "$GITHUB_OUTPUT"
-          else
-            echo "date=$RELEASE_DATE" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Write the changelog before the language entry
         uses: stellarwp/changelogger@6bff9fcee9dc63f8ec4d723b09f728fbc40d0be5 # v1
         with:
